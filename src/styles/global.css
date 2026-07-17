@@ -1,0 +1,317 @@
+/* === 工作脉络 WorkTrace — 设计系统 === */
+
+@import './typography.css';
+@import './components.css';
+
+:root {
+  /* =============================================
+     主色调 — 深海蓝 × 香槟金
+     ============================================= */
+  --color-primary: #1a3a5c;
+  --color-primary-light: #2d5a8e;
+  --color-primary-dark: #0f2640;
+
+  --color-accent: #c9a84c;
+  --color-accent-light: #dfc47a;
+  --color-accent-dark: #a68a30;
+
+  /* =============================================
+     背景色
+     ============================================= */
+  --color-bg: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f3f5;
+
+  /* =============================================
+     文字色
+     ============================================= */
+  --color-text: #2d3436;
+  --color-text-secondary: #636e72;
+  --color-text-muted: #b2bec3;
+
+  /* =============================================
+     边框
+     ============================================= */
+  --color-border: #dfe6e9;
+  --color-border-light: #f0f0f0;
+
+  /* =============================================
+     状态色
+     ============================================= */
+  --color-success: #00b894;
+  --color-warning: #fdcb6e;
+  --color-danger: #d63031;
+  --color-info: #0984e3;
+  --color-pending: #e17055;
+
+  /* =============================================
+     间距 (4px 基准)
+     ============================================= */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* =============================================
+     排版
+     ============================================= */
+  --font-family:
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    sans-serif;
+
+  --font-mono:
+    "SF Mono",
+    "Cascadia Code",
+    "Consolas",
+    monospace;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+
+  /* =============================================
+     圆角
+     ============================================= */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* =============================================
+     阴影
+     ============================================= */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+
+  /* =============================================
+     过渡
+     ============================================= */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+
+/* =============================================
+   全局重置
+   ============================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* =============================================
+   链接
+   ============================================= */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-light);
+}
+
+/* =============================================
+   媒体
+   ============================================= */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* =============================================
+   列表重置
+   ============================================= */
+ul,
+ol {
+  list-style: none;
+}
+
+/* =============================================
+   表单重置
+   ============================================= */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* =============================================
+   容器
+   ============================================= */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.container-narrow {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.container-wide {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+/* =============================================
+   可选选取/高亮
+   ============================================= */
+::selection {
+  background: rgba(26, 58, 92, 0.15);
+  color: var(--color-primary-dark);
+}
+
+/* =============================================
+   聚焦环 (accessibility)
+   ============================================= */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   Scrollbar 美化 (WebKit)
+   ============================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* =============================================
+   响应式布局
+   ============================================= */
+
+/* ── Mobile: < 768px (含 375px 小屏) ── */
+@media (max-width: 767px) {
+  /* 容器缩窄内边距 */
+  .container,
+  .container-narrow,
+  .container-wide {
+    padding: 0 var(--space-md);
+  }
+
+  /* 标题缩小，保证可读性 */
+  h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  h3 {
+    font-size: var(--font-size-lg);
+  }
+
+  /* 网格 — 从多列收为单列 */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+
+  /* 交互式时间线：横向滚动 */
+  .vis-timeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Card 减小内边距 */
+  .card {
+    padding: var(--space-md);
+  }
+
+  .card-header {
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  /* 段落更紧凑 */
+  p {
+    line-height: 1.6;
+  }
+}
+
+/* ── Tablet: 768–1023px ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .main-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .two-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .container,
+  .container-narrow,
+  .container-wide {
+    padding: 0 var(--space-xl);
+  }
+}

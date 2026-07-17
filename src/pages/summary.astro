@@ -1,0 +1,444 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const meetings = await getCollection('meetings');
+
+// ─── 月度会议分布 (1-7月) ─────────────────────────────────────────
+const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月'];
+const monthlyCount = [0, 0, 0, 0, 0, 0, 0];
+meetings.forEach((m) => {
+  const month = parseInt(m.data.metadata.date.split('-')[1]);
+  if (month >= 1 && month <= 7) monthlyCount[month - 1]++;
+});
+const maxMonthly = Math.max(...monthlyCount, 1);
+
+// ─── 核心议题 Top 5 (关键词频率) ───────────────────────────────────
+const keywordMap = new Map<
+  string,
+  { count: number; meetings: Array<{ title: string; date: string; id: string }> }
+>();
+meetings.forEach((m) => {
+  m.data.keywords?.forEach((kw) => {
+    if (!keywordMap.has(kw)) keywordMap.set(kw, { count: 0, meetings: [] });
+    const entry = keywordMap.get(kw)!;
+    entry.count++;
+    entry.meetings.push({
+      title: m.data.metadata.title,
+      date: m.data.metadata.date,
+      id: m.data.metadata.id,
+    });
+  });
+});
+const topKeywords = [...keywordMap.entries()]
+  .sort((a, b) => b[1].count - a[1].count)
+  .slice(0, 5);
+
+// ─── 关键决策 (按日期降序) ─────────────────────────────────────────
+interface DecisionEntry {
+  decision_id: string;
+  problem: string;
+  decision: string;
+  rationale: string;
+  date: string;
+  meetingTitle: string;
+  meetingDate: string;
+  meetingId: string;
+}
+const allDecisions: DecisionEntry[] = meetings
+  .flatMap((m) =>
+    (m.data.decisions || []).map((d) => ({
+      decision_id: d.decision_id,
+      problem: d.problem,
+      decision: d.decision,
+      rationale: d.rationale,
+      date: d.date,
+      meetingTitle: m.data.metadata.title,
+      meetingDate: m.data.metadata.date,
+      meetingId: m.data.metadata.id,
+    }))
+  )
+  .sort((a, b) => b.date.localeCompare(a.date));
+
+// ─── 待办统计 ──────────────────────────────────────────────────────
+const todoStats: Record<string, number> = {
+  pending: 0,
+  in_progress: 0,
+  completed: 0,
+  overdue: 0,
+};
+let todoTotal = 0;
+meetings.forEach((m) => {
+  m.data.action_items?.forEach((item) => {
+    if (item.status in todoStats) todoStats[item.status]++;
+    todoTotal++;
+  });
+});
+
+const statusLabels: Record<string, string> = {
+  pending: '待处理',
+  in_progress: '进行中',
+  completed: '已完成',
+  overdue: '已逾期',
+};
+const statusColors: Record<string, string> = {
+  pending: 'var(--color-pending)',
+  in_progress: 'var(--color-info)',
+  completed: 'var(--color-success)',
+  overdue: 'var(--color-danger)',
+};
+
+// ─── 生成时间 ──────────────────────────────────────────────────────
+const generatedAt = new Date().toISOString().split('T')[0];
+---
+
+<BaseLayout title="综合摘要 — WorkTrace">
+  <main class="container-wide">
+    <header class="page-header">
+      <h1>综合摘要</h1>
+      <p class="generated-at text-muted">综合摘要生成时间: {generatedAt}</p>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         1. 月度会议分布条形图
+         ═══════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">月度会议分布</h2>
+      <p class="text-muted" style="margin-bottom: var(--space-lg)">
+        共 {meetings.length} 场会议，覆盖 1-7 月
+      </p>
+      <div class="bar-chart">
+        {
+          monthNames.map((name, i) => {
+            const count = monthlyCount[i];
+            const percent = Math.round((count / maxMonthly) * 100);
+            return (
+              <div class="bar-item">
+                <div class="bar-value">{count} 场</div>
+                <div class="bar" style={`height:${percent}%`}></div>
+                <div class="bar-label">{name}</div>
+              </div>
+            );
+          })
+        }
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         2. 核心议题 Top 5
+         ═══════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">核心议题 Top 5</h2>
+      <ul class="keyword-list">
+        {
+          topKeywords.map(([kw, { count, meetings: kwMeetings }]) => (
+            <li class="keyword-item">
+              <div class="keyword-header">
+                <span class="tag tag-default">{kw}</span>
+                <span class="badge">{count}</span>
+                <span class="text-muted" style="font-size: var(--font-size-sm)">
+                  次出现
+                </span>
+              </div>
+              <details class="keyword-detail">
+                <summary class="keyword-toggle text-muted">
+                  关联 {kwMeetings.length} 场会议
+                </summary>
+                <ul class="keyword-meetings">
+                  {kwMeetings.map((mt) => (
+                    <li>
+                      <span class="text-muted" style="font-size: var(--font-size-xs)">
+                        {mt.date}
+                      </span>
+                      <span>{mt.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         3. 关键决策汇总
+         ═══════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">关键决策汇总</h2>
+      <p class="text-muted" style="margin-bottom: var(--space-lg)">
+        共 {allDecisions.length} 条决策
+      </p>
+      <div class="decision-list">
+        {
+          allDecisions.length > 0 ? (
+            allDecisions.map((d) => (
+              <div class="decision-item">
+                <div class="decision-meta">
+                  <time datetime={d.date} class="decision-date">{d.date}</time>
+                  <span class="text-muted" style="font-size: var(--font-size-xs)">
+                    {d.meetingTitle}
+                  </span>
+                </div>
+                <p class="decision-text">{d.decision}</p>
+              </div>
+            ))
+          ) : (
+            <div class="empty-state">
+              <p>暂无决策记录</p>
+            </div>
+          )
+        }
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         4. 待办统计
+         ═══════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">待办统计</h2>
+      <div class="todo-stats-grid">
+        {
+          Object.entries(todoStats).map(([status, count]) => (
+            <div class="todo-stat-card">
+              <div
+                class="todo-stat-bar"
+                style={`background:${statusColors[status]}; width:${todoTotal > 0 ? Math.round((count / todoTotal) * 100) : 0}%`}
+              ></div>
+              <div class="todo-stat-content">
+                <span class={`tag tag-${status.replace('_', '-')}`}>
+                  {statusLabels[status]}
+                </span>
+                <span class="todo-stat-count">{count}</span>
+              </div>
+            </div>
+          ))
+        }
+        <div class="todo-stat-card todo-stat-total">
+          <div class="todo-stat-content">
+            <span class="text-muted">总计</span>
+            <span class="todo-stat-count">{todoTotal}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     Summary page styles — all using design system tokens
+     ═══════════════════════════════════════════════════════════════════ */
+
+  main {
+    padding: var(--space-2xl) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  /* --- Page Header --- */
+  .page-header {
+    margin-bottom: var(--space-md);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .generated-at {
+    font-size: var(--font-size-sm);
+  }
+
+  /* --- Bar Chart (Monthly Distribution) --- */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-md);
+    height: 220px;
+    padding: var(--space-xl) 0 var(--space-md);
+  }
+
+  .bar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .bar {
+    width: 80%;
+    max-width: 64px;
+    background: linear-gradient(
+      180deg,
+      var(--color-primary-light) 0%,
+      var(--color-primary) 100%
+    );
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    min-height: 4px;
+    transition: height var(--transition-base);
+    position: relative;
+  }
+
+  .bar-value {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-xs);
+    white-space: nowrap;
+  }
+
+  .bar-label {
+    margin-top: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+
+  /* --- Keyword List --- */
+  .keyword-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .keyword-item {
+    padding: var(--space-md);
+    background: var(--color-surface-hover);
+    border-radius: var(--radius-sm);
+  }
+
+  .keyword-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
+  }
+
+  .keyword-toggle {
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    user-select: none;
+  }
+
+  .keyword-toggle:hover {
+    color: var(--color-text-secondary);
+  }
+
+  .keyword-detail {
+    margin-top: var(--space-sm);
+  }
+
+  .keyword-meetings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+    padding-left: var(--space-md);
+    border-left: 2px solid var(--color-border);
+  }
+
+  .keyword-meetings li {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: baseline;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+
+  /* --- Decision List --- */
+  .decision-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .decision-item {
+    padding: var(--space-md);
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-surface-hover);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .decision-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xs);
+  }
+
+  .decision-date {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-accent-dark);
+    font-family: var(--font-mono);
+  }
+
+  .decision-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  /* --- Todo Stats --- */
+  .todo-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-md);
+  }
+
+  .todo-stat-card {
+    position: relative;
+    background: var(--color-surface-hover);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    overflow: hidden;
+  }
+
+  .todo-stat-bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    border-radius: 0 var(--radius-sm) 0 0;
+    transition: width var(--transition-base);
+  }
+
+  .todo-stat-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .todo-stat-count {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    font-family: var(--font-mono);
+  }
+
+  .todo-stat-total {
+    background: var(--color-bg);
+    border: 1px dashed var(--color-border);
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 767px) {
+    .bar-chart {
+      height: 180px;
+      gap: var(--space-sm);
+    }
+
+    .bar {
+      width: 90%;
+    }
+
+    .todo-stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

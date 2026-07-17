@@ -1,0 +1,40 @@
+<footer class="site-footer">
+  <div class="container footer-content">
+    <span class="footer-brand">&copy; 2026 工作脉络 WorkTrace</span>
+    <span class="footer-update">数据更新: 2026年7月</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--color-primary-dark);
+    padding: var(--space-lg) 0;
+    margin-top: var(--space-3xl);
+  }
+
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-size-sm);
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .footer-brand {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .footer-update {
+    font-size: var(--font-size-xs);
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  @media (max-width: 480px) {
+    .footer-content {
+      flex-direction: column;
+      gap: var(--space-sm);
+      text-align: center;
+    }
+  }
+</style>

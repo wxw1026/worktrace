@@ -1,0 +1,325 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SearchBar from '../components/SearchBar.astro';
+import { getCollection } from 'astro:content';
+
+const meetings = await getCollection('meetings');
+
+// ── Stats ──────────────────────────────────────────────
+const totalMeetings = meetings.length;
+
+const allItems = meetings.flatMap((m) => m.data.action_items ?? []);
+const totalTodos = allItems.length;
+const completedTodos = allItems.filter((i) => i.status === 'completed').length;
+
+const keywordMap = new Map<string, number>();
+for (const m of meetings) {
+  for (const kw of m.data.keywords ?? []) {
+    keywordMap.set(kw, (keywordMap.get(kw) ?? 0) + 1);
+  }
+}
+const uniqueKeywords = keywordMap.size;
+
+// ── Date Range ──────────────────────────────────────────
+const dates = meetings
+  .map((m) => m.data.metadata?.date)
+  .filter(Boolean) as string[];
+dates.sort();
+const dateMin = dates.at(0) ?? '?';
+const dateMax = dates.at(-1) ?? '?';
+const dateRange =
+  dateMin.substring(0, 7).replace('-', '.') +
+  '-' +
+  dateMax.substring(5, 7);
+
+// ── Recent 5 ───────────────────────────────────────────
+const recent = meetings
+  .slice()
+  .sort((a, b) => (b.data.metadata?.date ?? '').localeCompare(a.data.metadata?.date ?? ''))
+  .slice(0, 5);
+
+// ── Keyword Top 15 ─────────────────────────────────────
+const topKeywords = [...keywordMap.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 15);
+
+const kwFreqs = topKeywords.map(([, f]) => f);
+const kwMin = Math.min(...kwFreqs);
+const kwMax = Math.max(...kwFreqs);
+const kwScale = (f: number) =>
+  kwMax === kwMin ? 1 : 0.75 + ((f - kwMin) / (kwMax - kwMin)) * 1.25;
+
+// ── Helpers ────────────────────────────────────────────
+function excerpt(text: string, maxLen = 80): string {
+  if (!text) return '';
+  const cleaned = text.replace(/\n/g, ' ');
+  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) + '…' : cleaned;
+}
+---
+
+<BaseLayout title="工作脉络" description="工作脉络 · 会议知识库">
+  <div class="page">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="hero">
+      <div class="container">
+        <h1 class="hero-title">会议知识库</h1>
+        <p class="hero-sub">
+          {totalMeetings} 场会议 / {dateRange}
+        </p>
+      </div>
+    </section>
+
+    <div class="container">
+
+      <!-- ═══════════ Stats Cards ═══════════ -->
+      <section class="stats-grid">
+        <div class="card stat-card">
+          <span class="stat-number">{totalMeetings}</span>
+          <span class="stat-label">会议总数</span>
+        </div>
+        <div class="card stat-card">
+          <span class="stat-number">{totalTodos}</span>
+          <span class="stat-label">待办总数</span>
+        </div>
+        <div class="card stat-card">
+          <span class="stat-number">{completedTodos}</span>
+          <span class="stat-label">已完成</span>
+        </div>
+        <div class="card stat-card">
+          <span class="stat-number">{uniqueKeywords}</span>
+          <span class="stat-label">关键词数</span>
+        </div>
+      </section>
+
+      <!-- ═══════════ Main Grid: Recent + Keywords ═══════════ -->
+      <section class="main-grid">
+        <!-- 最近会议 -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">最近会议</h2>
+          </div>
+          <ul class="meeting-list">
+            {
+              recent.map((m) => {
+                const meta = m.data.metadata;
+                return (
+                  <li class="meeting-item">
+                    <a href={`/meeting/${m.id}`} class="meeting-link">
+                      <span class="meeting-date">{meta?.date ?? ''}</span>
+                      <span class="meeting-title">{meta?.title ?? m.id}</span>
+                      <span class="meeting-excerpt">{excerpt(m.data.summary, 50)}</span>
+                    </a>
+                  </li>
+                );
+              })
+            }
+          </ul>
+          <div class="card-footer">
+            <a href="/timeline" class="btn btn-outline btn-sm">查看全部 →</a>
+          </div>
+        </div>
+
+        <!-- 关键词云 -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">关键词云</h2>
+          </div>
+          <div class="keyword-cloud">
+            {
+              topKeywords.map(([word, freq]) => (
+                <span
+                  class="keyword-tag"
+                  style={`font-size: ${kwScale(freq).toFixed(2)}rem;`}
+                >
+                  {word}
+                </span>
+              ))
+            }
+          </div>
+          <p class="text-muted" style="font-size: var(--font-size-xs); margin-top: var(--space-md);">
+            Top 15 · 字号按频率缩放
+          </p>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ═══════════ Search ═══════════ -->
+      <section class="search-section">
+        <h2 class="section-title">搜索会议</h2>
+        <SearchBar />
+      </section>
+
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /* ═══════════ Page Layout ═══════════ */
+  .page {
+    padding-bottom: var(--space-3xl);
+  }
+
+  /* ═══════════ Hero ═══════════ */
+  .hero {
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+    padding: var(--space-3xl) 0;
+    margin-bottom: var(--space-2xl);
+  }
+
+  .hero-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: var(--space-sm);
+  }
+
+  .hero-sub {
+    font-size: var(--font-size-lg);
+    color: var(--color-accent-light);
+    margin-bottom: 0;
+  }
+
+  /* ═══════════ Stats Grid ═══════════ */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-2xl);
+  }
+
+  .stat-card {
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .stat-number {
+    display: block;
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1.2;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+  }
+
+  /* ═══════════ Main Grid ═══════════ */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-2xl);
+  }
+
+  /* ═══════════ Meeting List ═══════════ */
+  .meeting-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .meeting-item {
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .meeting-item:last-child {
+    border-bottom: none;
+  }
+
+  .meeting-link {
+    display: block;
+    padding: var(--space-md) 0;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: background var(--transition-fast);
+  }
+
+  .meeting-link:hover {
+    background: var(--color-surface-hover);
+    margin: 0 calc(var(--space-md) * -1);
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    border-radius: var(--radius-sm);
+  }
+
+  .meeting-date {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .meeting-title {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 2px;
+    line-height: 1.4;
+  }
+
+  .meeting-excerpt {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+
+  /* ═══════════ Keyword Cloud ═══════════ */
+  .keyword-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    align-items: center;
+    justify-content: flex-start;
+    padding: var(--space-md) 0;
+    min-height: 280px;
+    align-content: center;
+  }
+
+  .keyword-tag {
+    display: inline-block;
+    color: var(--color-primary);
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 2px var(--space-xs);
+    transition: color var(--transition-fast);
+    cursor: default;
+  }
+
+  .keyword-tag:hover {
+    color: var(--color-accent);
+  }
+
+  /* ═══════════ Search ═══════════ */
+  .search-section {
+    margin-bottom: var(--space-lg);
+  }
+
+  /* ═══════════ Responsive ═══════════ */
+  @media (max-width: 767px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-title {
+      font-size: var(--font-size-2xl);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

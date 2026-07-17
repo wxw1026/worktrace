@@ -1,0 +1,186 @@
+---
+const navLinks = [
+  { href: '/', label: '首页' },
+  { href: '/timeline', label: '时间线' },
+  { href: '/summary', label: '摘要' },
+  { href: '/todos', label: '待办' },
+  { href: '/insights', label: '洞察' },
+];
+
+const currentPath = Astro.url?.pathname || '/';
+---
+
+<header class="site-header">
+  <div class="nav-container container">
+    <a href="/" class="nav-logo" aria-label="工作脉络首页">工作脉络</a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-input" />
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="切换导航菜单">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </label>
+
+    <nav class="nav-menu" aria-label="主导航">
+      <ul class="nav-list">
+        {
+          navLinks.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                class:list={[
+                  'nav-link',
+                  { active: currentPath === link.href },
+                ]}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    background: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid var(--color-border-light);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+
+  .nav-logo {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .nav-logo:hover {
+    color: var(--color-accent);
+  }
+
+  /* ---- Desktop nav ---- */
+  .nav-list {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .nav-link {
+    display: block;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .nav-link:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
+
+  .nav-link.active {
+    color: var(--color-accent-dark);
+    background: rgba(201, 168, 76, 0.12);
+    font-weight: 600;
+  }
+
+  /* ---- Hamburger toggle ---- */
+  .nav-toggle-input {
+    display: none;
+  }
+
+  .nav-toggle-label {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: var(--space-sm);
+    cursor: pointer;
+    z-index: 102;
+    user-select: none;
+  }
+
+  .hamburger-line {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-primary-dark);
+    border-radius: 2px;
+    transition: all var(--transition-base);
+    transform-origin: center;
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 767px) {
+    .nav-toggle-label {
+      display: flex;
+    }
+
+    .nav-menu {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-surface);
+      padding: var(--space-xl) var(--space-lg);
+      transform: translateX(100%);
+      transition: transform var(--transition-base);
+      z-index: 101;
+      overflow-y: auto;
+    }
+
+    .nav-toggle-input:checked ~ .nav-menu {
+      transform: translateX(0);
+    }
+
+    .nav-list {
+      flex-direction: column;
+      gap: var(--space-xs);
+      align-items: stretch;
+    }
+
+    .nav-link {
+      font-size: var(--font-size-lg);
+      padding: var(--space-md) var(--space-lg);
+      border-radius: var(--radius-md);
+    }
+
+    /* Hamburger → X animation */
+    .nav-toggle-input:checked ~ .nav-toggle-label .hamburger-line:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .nav-toggle-input:checked ~ .nav-toggle-label .hamburger-line:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    .nav-toggle-input:checked ~ .nav-toggle-label .hamburger-line:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+  }
+</style>

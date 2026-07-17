@@ -1,0 +1,544 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const meetings = await getCollection('meetings');
+
+// ─── 关键词共现热力图 (Top 20) ────────────────────────────────────────
+const kwFreq = new Map<string, number>();
+meetings.forEach(m => m.data.keywords?.forEach((k: string) => kwFreq.set(k, (kwFreq.get(k)||0)+1)));
+const topKws = [...kwFreq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,20);
+const topKwSet = new Set(topKws.map(([k]) => k));
+
+// 构建 20×20 共现矩阵
+const coocMatrix: Record<string, Record<string, number>> = {};
+topKws.forEach(([k1]) => {
+  coocMatrix[k1] = {};
+  topKws.forEach(([k2]) => { coocMatrix[k1][k2] = 0; });
+});
+
+meetings.forEach(m => {
+  const kws = (m.data.keywords || []).filter((k: string) => topKwSet.has(k));
+  for (let i = 0; i < kws.length; i++) {
+    for (let j = i; j < kws.length; j++) {
+      coocMatrix[kws[i]][kws[j]]++;
+      if (kws[i] !== kws[j]) coocMatrix[kws[j]][kws[i]]++;
+    }
+  }
+});
+
+const maxCooc = Math.max(...Object.values(coocMatrix).flatMap(row => Object.values(row)), 1);
+
+// ─── 月度会议密度日历 (1-7月, GitHub-Contribution 风格) ─────────────────
+const calendar: Record<string, number> = {};
+meetings.forEach(m => {
+  const d = m.data.metadata?.date;
+  if (d) calendar[d] = (calendar[d]||0)+1;
+});
+
+const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+const startDate = new Date(2026, 0, 1);
+const endDate = new Date(2026, 6, 31);
+const allDates: Date[] = [];
+for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+  allDates.push(new Date(d));
+}
+const startDow = startDate.getDay(); // 4 = Thursday
+const monthAbbr = ['1月','2月','3月','4月','5月','6月','7月'];
+
+// ─── 待办完成趋势 (月度柱状图) ──────────────────────────────────────────
+const months = ['01','02','03','04','05','06','07'];
+const monthLabels = ['1月','2月','3月','4月','5月','6月','7月'];
+const todoTrend = months.map((mm, i) => {
+  const ms = meetings.filter(m => {
+    const d = m.data.metadata?.date;
+    return d && d.startsWith('2026-'+mm);
+  });
+  const todos = ms.flatMap((m: any) => m.data.action_items || []);
+  return { month: monthLabels[i], total: todos.length, completed: todos.filter((t: any) => t.status==='completed').length };
+});
+const maxTodo = Math.max(...todoTrend.map(t => t.total), 1);
+
+// ─── 生成时间 ──────────────────────────────────────────────────────────
+const generatedAt = new Date().toISOString().split('T')[0];
+---
+
+<BaseLayout title="数据洞察 — WorkTrace" description="关键词共现热力图、月度会议密度日历与待办完成趋势">
+  <main class="insights-main">
+    <header class="page-header">
+      <h1>数据洞察</h1>
+      <p class="generated-at text-muted">数据生成时间: {generatedAt} · 共 {meetings.length} 场会议</p>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         1. 关键词共现热力图 (Top 20)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">关键词共现热力图</h2>
+      <p class="text-muted chart-desc">
+        Top 20 高频关键词在会议中的共现频次，颜色越深表示协同出现次数越多
+      </p>
+      <div class="heatmap-wrapper">
+        <div class="heatmap-y-axis">
+          {topKws.map(([kw]) => <span class="hm-label hm-label-y">{kw}</span>)}
+        </div>
+        <div class="heatmap-scroll">
+          <div class="heatmap-grid">
+            {topKws.map(([kwY]) => (
+              topKws.map(([kwX]) => {
+                const val = coocMatrix[kwY][kwX];
+                const opacity = maxCooc > 0 ? val / maxCooc : 0;
+                return (
+                  <div
+                    class="hm-cell"
+                    style={`--hm-opacity:${opacity.toFixed(2)}`}
+                    title={`${kwY} × ${kwX}: ${val} 次`}
+                  ></div>
+                );
+              })
+            ))}
+          </div>
+          <div class="heatmap-x-axis">
+            {topKws.map(([kw]) => <span class="hm-label hm-label-x">{kw}</span>)}
+          </div>
+        </div>
+      </div>
+      <div class="heatmap-legend">
+        <span class="text-muted legend-label">少</span>
+        <span class="legend-swatch" style="--hm-opacity:0"></span>
+        <span class="legend-swatch" style="--hm-opacity:0.25"></span>
+        <span class="legend-swatch" style="--hm-opacity:0.5"></span>
+        <span class="legend-swatch" style="--hm-opacity:0.75"></span>
+        <span class="legend-swatch" style="--hm-opacity:1"></span>
+        <span class="text-muted legend-label">多</span>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         2. 月度会议密度日历 (1-7月, GitHub-Contribution 风格)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">月度会议密度</h2>
+      <p class="text-muted chart-desc">
+        2026年1月至7月每日会议数量，颜色越深当日会议越多
+      </p>
+      <div class="cal-wrapper">
+        <div class="cal-header">
+          {dayNames.map(d => <span class="cal-dow">{d}</span>)}
+        </div>
+        <div class="cal-grid">
+          {/* 月初空白填充 */}
+          {Array.from({ length: startDow }).map(() => <div class="cal-cell cal-empty"></div>)}
+          {/* 每日单元格 */}
+          {allDates.map(d => {
+            const ds = d.toISOString().split('T')[0];
+            const count = calendar[ds] || 0;
+            const monthIdx = d.getMonth();
+            const dayOfMonth = d.getDate();
+            return (
+              <div
+                class={`cal-cell cal-level-${Math.min(count, 4)}`}
+                title={`${monthAbbr[monthIdx]}${dayOfMonth}日: ${count} 场`}
+              >
+                <span class="cal-label">{monthAbbr[monthIdx]}{dayOfMonth}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div class="cal-legend">
+        <span class="text-muted legend-label">0</span>
+        <span class="cal-swatch cal-level-0"></span>
+        <span class="cal-swatch cal-level-1"></span>
+        <span class="cal-swatch cal-level-2"></span>
+        <span class="cal-swatch cal-level-3"></span>
+        <span class="cal-swatch cal-level-4"></span>
+        <span class="text-muted legend-label">4+</span>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         3. 待办完成趋势 (月度柱状图)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <section class="card">
+      <h2 class="section-title">待办完成趋势</h2>
+      <p class="text-muted chart-desc">
+        每月会议产生的待办总数与已完成数对比
+      </p>
+      <div class="trend-chart">
+        {todoTrend.map(t => {
+          const totalPct = Math.round((t.total / maxTodo) * 100);
+          const completedPct = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
+          return (
+            <div class="trend-item">
+              <div class="trend-bars">
+                <div class="trend-bar-wrap">
+                  <span class="trend-val">{t.total}</span>
+                  <div class="trend-bar trend-bar-total" style={`height:${totalPct}%`} title={`总计: ${t.total}`}></div>
+                </div>
+                <div class="trend-bar-wrap">
+                  <span class="trend-val trend-val-done">{t.completed}</span>
+                  <div class="trend-bar trend-bar-done" style={`height:${completedPct > 0 ? Math.max(completedPct, 3) : 0}%`} title={`已完成: ${t.completed}`}></div>
+                </div>
+              </div>
+              <div class="trend-label-group">
+                <span class="trend-month">{t.month}</span>
+                <span class="trend-pct text-muted">{completedPct}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div class="trend-legend-inline">
+        <span class="legend-dot legend-dot-total"></span>
+        <span class="text-muted">待办总数</span>
+        <span class="legend-dot legend-dot-done"></span>
+        <span class="text-muted">已完成</span>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  /* ═══════════════════════════════════════════════════════════════════
+     Insights page — pure CSS visualizations
+     ═══════════════════════════════════════════════════════════════════ */
+
+  .insights-main {
+    padding: var(--space-2xl) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .page-header {
+    margin-bottom: var(--space-md);
+  }
+  .page-header h1 { margin-bottom: var(--space-sm); }
+  .generated-at { font-size: var(--font-size-sm); }
+  .chart-desc { font-size: var(--font-size-sm); margin-bottom: var(--space-lg); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Heatmap
+     ═══════════════════════════════════════════════════════════════ */
+  .heatmap-wrapper {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
+  }
+
+  .heatmap-y-axis {
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+    flex-shrink: 0;
+  }
+
+  .hm-label {
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hm-label-y {
+    height: 20px;
+    line-height: 20px;
+    padding-right: var(--space-sm);
+    color: var(--color-text-secondary);
+    text-align: right;
+    max-width: 56px;
+  }
+
+  .heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(20, 20px);
+    grid-template-rows: repeat(20, 20px);
+    gap: 1px;
+  }
+
+  .hm-cell {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--color-primary);
+    opacity: var(--hm-opacity);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    cursor: default;
+  }
+
+  .hm-cell:hover {
+    opacity: 1 !important;
+    transform: scale(1.3);
+    z-index: 1;
+    box-shadow: var(--shadow-md);
+  }
+
+  .heatmap-x-axis {
+    display: flex;
+    gap: 1px;
+    margin-top: var(--space-xs);
+  }
+
+  .hm-label-x {
+    width: 20px;
+    font-size: 9px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-md);
+    justify-content: flex-end;
+  }
+
+  .legend-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--color-primary);
+    opacity: var(--hm-opacity);
+    border: 1px solid var(--color-border-light);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Calendar (GitHub Contribution style)
+     ═══════════════════════════════════════════════════════════════ */
+  .cal-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .cal-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: var(--space-xs);
+  }
+
+  .cal-dow {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    transition: transform var(--transition-fast);
+    min-height: 32px;
+  }
+
+  .cal-cell:hover {
+    transform: scale(1.25);
+    z-index: 1;
+    box-shadow: var(--shadow-md);
+  }
+
+  .cal-empty {
+    background: transparent;
+    pointer-events: none;
+  }
+
+  /* 密度色阶 */
+  .cal-level-0 { background: var(--color-surface-hover); }
+  .cal-level-1 { background: rgba(45, 90, 142, 0.25); }
+  .cal-level-2 { background: rgba(45, 90, 142, 0.5); }
+  .cal-level-3 { background: rgba(45, 90, 142, 0.75); }
+  .cal-level-4 { background: var(--color-primary-light); }
+
+  .cal-label {
+    font-size: 8px;
+    color: var(--color-text-secondary);
+    line-height: 1;
+    text-align: center;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .cal-level-3 .cal-label,
+  .cal-level-4 .cal-label {
+    color: #fff;
+  }
+
+  .cal-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-md);
+    justify-content: flex-end;
+  }
+
+  .cal-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid var(--color-border-light);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Todo Trend Bar Chart
+     ═══════════════════════════════════════════════════════════════ */
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    height: 220px;
+    padding: var(--space-lg) 0 var(--space-md);
+  }
+
+  .trend-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .trend-bars {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    height: 100%;
+    justify-content: center;
+  }
+
+  .trend-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    width: 28px;
+  }
+
+  .trend-val {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-xs);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+
+  .trend-val-done {
+    color: var(--color-success);
+  }
+
+  .trend-bar {
+    width: 100%;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    min-height: 3px;
+    transition: height var(--transition-base);
+  }
+
+  .trend-bar-total {
+    background: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  }
+
+  .trend-bar-done {
+    background: linear-gradient(180deg, #00cec9 0%, var(--color-success) 100%);
+  }
+
+  .trend-label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: var(--space-sm);
+    gap: 2px;
+  }
+
+  .trend-month {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+
+  .trend-pct {
+    font-size: var(--font-size-xs);
+  }
+
+  .trend-legend-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    justify-content: center;
+    margin-top: var(--space-md);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .legend-dot-total { background: var(--color-primary); }
+  .legend-dot-done { background: var(--color-success); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     Responsive
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 767px) {
+    .heatmap-grid {
+      grid-template-columns: repeat(20, 14px);
+      grid-template-rows: repeat(20, 14px);
+    }
+    .hm-cell { width: 14px; height: 14px; }
+    .hm-label-y { height: 14px; line-height: 14px; max-width: 40px; font-size: 9px; }
+    .hm-label-x { width: 14px; font-size: 7px; }
+
+    .trend-chart {
+      height: 180px;
+      gap: var(--space-md);
+    }
+    .trend-bar-wrap { width: 22px; }
+    .trend-bars { gap: 4px; }
+
+    .cal-grid { gap: 2px; }
+    .cal-cell { border-radius: 2px; min-height: 24px; }
+    .cal-label { font-size: 6px; }
+  }
+
+  @media (max-width: 480px) {
+    .heatmap-grid {
+      grid-template-columns: repeat(20, 11px);
+      grid-template-rows: repeat(20, 11px);
+    }
+    .hm-cell { width: 11px; height: 11px; }
+    .hm-label-y { height: 11px; line-height: 11px; max-width: 30px; font-size: 7px; }
+    .hm-label-x { width: 11px; font-size: 6px; }
+
+    .trend-chart { height: 150px; gap: var(--space-sm); }
+    .trend-bar-wrap { width: 16px; }
+  }
+</style>

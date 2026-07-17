@@ -1,0 +1,209 @@
+---
+// Pagefind search component
+// Loads pagefind JS from the /pagefind/ directory (Pagefind output)
+---
+
+<div class="pagefind-search-wrapper" id="pagefind-search">
+  <div class="pagefind-search-box">
+    <input
+      type="search"
+      class="pagefind-search-input"
+      id="pagefind-input"
+      placeholder="搜索会议内容……"
+      autocomplete="off"
+    />
+    <div class="pagefind-search-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </div>
+  </div>
+  <div class="pagefind-results" id="pagefind-results"></div>
+</div>
+
+<script>
+  // Load Pagefind dynamically
+  (async function () {
+    const input = document.getElementById('pagefind-input') as HTMLInputElement | null;
+    const resultsContainer = document.getElementById('pagefind-results') as HTMLDivElement | null;
+    if (!input || !resultsContainer) return;
+
+    // Load pagefind JS bundle
+    const script = document.createElement('script');
+    script.src = '/pagefind/pagefind.js';
+    script.onload = async () => {
+      // Wait for Pagefind to initialize
+      if (!(window as any).pagefind) {
+        // Pagefind might need a moment to be available
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      const pagefind = (window as any).pagefind;
+      if (!pagefind) return;
+
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+      async function search(query: string) {
+        if (!query.trim()) {
+          resultsContainer!.innerHTML = '';
+          resultsContainer!.style.display = 'none';
+          return;
+        }
+
+        try {
+          const search = await pagefind.search(query);
+          if (!search || !search.results || search.results.length === 0) {
+            resultsContainer!.innerHTML = '<div class="pagefind-empty">未找到匹配结果</div>';
+            resultsContainer!.style.display = 'block';
+            return;
+          }
+
+          const results = await Promise.all(
+            search.results.slice(0, 8).map(async (r: any) => {
+              const data = await r.data();
+              return { url: data.url, meta: data.meta, excerpt: data.excerpt };
+            })
+          );
+
+          const html = results.map((r: any) => {
+            const title = r.meta?.title || r.url;
+            return `
+              <a href="${r.url}" class="pagefind-result-item">
+                <span class="pagefind-result-title">${title}</span>
+                <span class="pagefind-result-excerpt">${r.excerpt || ''}</span>
+              </a>
+            `;
+          }).join('');
+
+          resultsContainer!.innerHTML = html;
+          resultsContainer!.style.display = 'block';
+        } catch (err) {
+          console.error('Pagefind search error:', err);
+        }
+      }
+
+      input!.addEventListener('input', () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => search(input!.value), 300);
+      });
+
+      input!.addEventListener('focus', () => {
+        if (input!.value.trim()) search(input!.value);
+      });
+    };
+
+    document.head.appendChild(script);
+  })();
+</script>
+
+<style>
+  .pagefind-search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .pagefind-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .pagefind-search-input {
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    padding-right: 44px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-surface);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    outline: none;
+  }
+
+  .pagefind-search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(45, 90, 142, 0.15);
+  }
+
+  .pagefind-search-input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .pagefind-search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .pagefind-results {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 420px;
+    overflow-y: auto;
+    padding: var(--space-xs);
+  }
+
+  .pagefind-result-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: background var(--transition-fast);
+    cursor: pointer;
+  }
+
+  .pagefind-result-item:hover,
+  .pagefind-result-item:focus {
+    background: var(--color-surface-hover);
+  }
+
+  .pagefind-result-title {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+
+  .pagefind-result-excerpt {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  .pagefind-empty {
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 767px) {
+    .pagefind-search-wrapper {
+      max-width: 100%;
+    }
+
+    .pagefind-results {
+      max-height: 320px;
+    }
+  }
+</style>

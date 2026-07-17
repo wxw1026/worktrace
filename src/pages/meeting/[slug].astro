@@ -1,0 +1,561 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const meetings = await getCollection('meetings');
+  return meetings.map((m) => ({ params: { slug: m.id } }));
+}
+
+const { slug } = Astro.params;
+const meetings = await getCollection('meetings', (m) => m.id === slug);
+const meeting = meetings[0];
+
+if (!meeting) {
+  return Astro.redirect('/404');
+}
+
+const { metadata, summary, segments, decisions, action_items, key_quotes, keywords } = meeting.data;
+
+// ── 待办按状态分组 ──
+const todosByStatus = {
+  pending: action_items.filter((a) => a.status === 'pending'),
+  in_progress: action_items.filter((a) => a.status === 'in_progress'),
+  completed: action_items.filter((a) => a.status === 'completed'),
+  overdue: action_items.filter((a) => a.status === 'overdue'),
+};
+
+// ── 金句最多 5 条 ──
+const displayQuotes = key_quotes.slice(0, 5);
+
+// ── 格式化时长 ──
+function formatDuration(minutes: number): string {
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hrs > 0 && mins > 0) return `${hrs} 小时 ${mins} 分钟`;
+  if (hrs > 0) return `${hrs} 小时`;
+  return `${mins} 分钟`;
+}
+
+// ── 格式化日期 ──
+function formatDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
+// ── 状态标签映射 ──
+const statusLabel: Record<string, string> = {
+  pending: '待处理',
+  in_progress: '进行中',
+  completed: '已完成',
+  overdue: '已逾期',
+};
+
+---
+
+<Layout title={`${metadata.title} — WorkTrace`}>
+  <div class="container-narrow meeting-page">
+
+    <!-- ═══════════════════════════════════════════
+         模块 1 — 头部：标题 + 日期 + 时长 + 标签
+         ═══════════════════════════════════════════ -->
+    <header class="meeting-header">
+      <a href="/" class="breadcrumb">&larr; 返回首页</a>
+      <h1 class="meeting-title">{metadata.title}</h1>
+      <div class="meeting-meta">
+        <span class="meta-item">
+          <svg class="meta-icon" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M3.5 0a.5.5 0 01.5.5V1h8V.5a.5.5 0 011 0V1h1a2 2 0 012 2v11a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2h1V.5a.5.5 0 01.5-.5zM2 2a1 1 0 00-1 1v1h14V3a1 1 0 00-1-1H2zm13 3H1v9a1 1 0 001 1h12a1 1 0 001-1V5z"/></svg>
+          {formatDate(metadata.date)}
+        </span>
+        <span class="meta-item">
+          <svg class="meta-icon" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16z"/><path fill="currentColor" d="M7.5 3a.5.5 0 01.5.5V8h3.5a.5.5 0 010 1h-4a.5.5 0 01-.5-.5v-5a.5.5 0 01.5-.5z"/></svg>
+          {formatDuration(metadata.duration)}
+        </span>
+        {
+          metadata.source_url && (
+            <a href={metadata.source_url} class="meta-item meta-link" target="_blank" rel="noopener noreferrer">
+              <svg class="meta-icon" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4.715 6.542L3.343 7.914a3 3 0 104.243 4.243l1.828-1.829A3 3 0 008.586 5.5L8 6.086a1.002 1.002 0 00-.154.199 2 2 0 01.861 3.337L6.88 11.45a2 2 0 11-2.83-2.83l.793-.792a4.018 4.018 0 01-.128-1.287z"/><path fill="currentColor" d="M6.586 4.672A3 3 0 007.414 9.5l.586-.586a1.002 1.002 0 00.154-.199 2 2 0 01-.861-3.337l1.828-1.828a2 2 0 112.829 2.828l-.793.793a4.02 4.02 0 01.128 1.287l1.372-1.372a3 3 0 10-4.243-4.243L6.586 4.672z"/></svg>
+              原始链接
+            </a>
+          )
+        }
+      </div>
+      {
+        metadata.tags.length > 0 && (
+          <div class="meeting-tags">
+            {metadata.tags.map((t) => <span class="tag tag-default">{t}</span>)}
+          </div>
+        )
+      }
+      {
+        keywords.length > 0 && (
+          <div class="meeting-keywords">
+            <span class="label">关键词</span>
+            {keywords.slice(0, 8).map((kw) => <span class="tag tag-default">{kw}</span>)}
+          </div>
+        )
+      }
+    </header>
+
+    <hr class="divider" />
+
+    <!-- ═══════════════════════════════════════════
+         模块 2 — 会议总结
+         ═══════════════════════════════════════════ -->
+    <section class="meeting-section">
+      <h2 class="section-title">会议总结</h2>
+      <div class="card">
+        <div class="card-body">
+          <p class="summary-text">{summary}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         模块 3 — 待办事项（按状态分组 + 颜色标签）
+         ═══════════════════════════════════════════ -->
+    {
+      action_items.length > 0 && (
+        <section class="meeting-section">
+          <h2 class="section-title">
+            待办事项
+            <span class="badge">{action_items.length}</span>
+          </h2>
+          {
+            (Object.entries(todosByStatus) as [string, typeof action_items][]).map(([status, items]) => {
+              if (items.length === 0) return null;
+              return (
+                <div class="todo-group">
+                  <h3 class="todo-group-title">
+                    <span class={`tag tag-${status.replace(/_/g, '-')}`}>{statusLabel[status]}</span>
+                    <span class="badge">{items.length}</span>
+                  </h3>
+                  <div class="card">
+                    <ul class="todo-list">
+                      {items.map((item) => (
+                        <li class="todo-item">
+                          <div class="todo-body">
+                            <p class="todo-task">{item.task}</p>
+                            <div class="todo-meta">
+                              <span class="todo-owner">{item.owner}</span>
+                              <span class="todo-due">截止: {formatDate(item.due_date)}</span>
+                              <span class={`tag tag-${item.status.replace(/_/g, '-')}`}>{statusLabel[item.status]}</span>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })
+          }
+        </section>
+      )
+    }
+
+    <!-- ═══════════════════════════════════════════
+         模块 4 — 决策（可折叠 details/summary）
+         ═══════════════════════════════════════════ -->
+    {
+      decisions.length > 0 && (
+        <section class="meeting-section">
+          <h2 class="section-title">
+            会议决策
+            <span class="badge">{decisions.length}</span>
+          </h2>
+          <div class="decisions-list">
+            {decisions.map((d, i) => (
+              <details class="decision-card card" open={i === 0}>
+                <summary class="decision-summary">
+                  <span class="decision-index">#{i + 1}</span>
+                  <span class="decision-title-text">{d.decision.length > 80 ? d.decision.slice(0, 80) + '…' : d.decision}</span>
+                  <svg class="decision-chevron" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z"/></svg>
+                </summary>
+                <div class="decision-body">
+                  <div class="decision-field">
+                    <span class="label">问题</span>
+                    <p>{d.problem}</p>
+                  </div>
+                  {
+                    d.options.length > 0 && (
+                      <div class="decision-field">
+                        <span class="label">备选方案</span>
+                        <ul class="decision-options">
+                          {d.options.map((opt) => <li>{opt}</li>)}
+                        </ul>
+                      </div>
+                    )
+                  }
+                  <div class="decision-field">
+                    <span class="label">决策依据</span>
+                    <p>{d.rationale}</p>
+                  </div>
+                  <div class="decision-field">
+                    <span class="label">日期</span>
+                    <p>{formatDate(d.date)}</p>
+                  </div>
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ═══════════════════════════════════════════
+         模块 5 — 会议章节（时间轴）
+         ═══════════════════════════════════════════ -->
+    {
+      segments.length > 0 && (
+        <section class="meeting-section">
+          <h2 class="section-title">
+            会议章节
+            <span class="badge">{segments.length}</span>
+          </h2>
+          <div class="timeline">
+            {segments.map((seg) => (
+              <div class="timeline-node">
+                <div class="timeline-time">
+                  <span class="timeline-start">{seg.start_time}</span>
+                  <span class="timeline-sep">–</span>
+                  <span class="timeline-end">{seg.end_time}</span>
+                </div>
+                <h4 class="timeline-title">{seg.title}</h4>
+                <p class="timeline-summary">{seg.summary}</p>
+                <span class="timeline-speaker">{seg.speaker}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ═══════════════════════════════════════════
+         模块 6 — 金句（引用块，最多 5 条）
+         ═══════════════════════════════════════════ -->
+    {
+      displayQuotes.length > 0 && (
+        <section class="meeting-section">
+          <h2 class="section-title">金句时刻</h2>
+          <div class="quotes-list">
+            {displayQuotes.map((q) => (
+              <blockquote class="quote-block">
+                <p class="quote-text">"{q.text}"</p>
+                <p class="quote-speaker">— {q.speaker}</p>
+                <p class="quote-context">{q.context}</p>
+              </blockquote>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ═══════════════════════════════════════════
+         底部导航
+         ═══════════════════════════════════════════ -->
+    <hr class="divider" />
+    <nav class="bottom-nav">
+      <a href="/" class="btn btn-outline">&larr; 返回首页</a>
+    </nav>
+
+  </div>
+</Layout>
+
+<style>
+  /* ═══════════════════════════════════════════════
+     会议详情页 —— 页面专属样式
+     ═══════════════════════════════════════════════ */
+
+  .meeting-page {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-3xl);
+  }
+
+  /* ── 头部 ── */
+  .meeting-header {
+    margin-bottom: var(--space-xs);
+  }
+
+  .breadcrumb {
+    display: inline-block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md);
+    transition: color var(--transition-fast);
+  }
+
+  .breadcrumb:hover {
+    color: var(--color-primary);
+  }
+
+  .meeting-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    line-height: 1.25;
+    margin-bottom: var(--space-md);
+  }
+
+  .meeting-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .meta-icon {
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .meta-link {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .meta-link:hover {
+    color: var(--color-primary-light);
+  }
+
+  .meeting-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+
+  .meeting-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+
+  /* ── 分区通用 ── */
+  .meeting-section {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .meeting-section:last-of-type {
+    margin-bottom: var(--space-lg);
+  }
+
+  /* ── 总结 ── */
+  .summary-text {
+    color: var(--color-text);
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+
+  /* ── 待办 ── */
+  .todo-group {
+    margin-bottom: var(--space-lg);
+  }
+
+  .todo-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .todo-group-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+  }
+
+  .todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .todo-item {
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .todo-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .todo-item:first-child {
+    padding-top: 0;
+  }
+
+  .todo-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .todo-task {
+    color: var(--color-text);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .todo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--font-size-xs);
+  }
+
+  .todo-owner {
+    color: var(--color-text-muted);
+  }
+
+  .todo-due {
+    color: var(--color-text-muted);
+  }
+
+  /* ── 决策卡片（details/summary） ── */
+  .decisions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .decision-card {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .decision-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+
+  .decision-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .decision-summary::marker {
+    display: none;
+  }
+
+  .decision-index {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .decision-title-text {
+    flex: 1;
+    color: var(--color-text);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .decision-chevron {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    transition: transform var(--transition-fast);
+  }
+
+  details[open] .decision-chevron {
+    transform: rotate(90deg);
+  }
+
+  .decision-body {
+    padding: 0 var(--space-lg) var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .decision-field p {
+    color: var(--color-text-secondary);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .decision-options {
+    list-style: disc;
+    padding-left: var(--space-lg);
+    margin: 0;
+  }
+
+  .decision-options li {
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* ── 章节时间轴 ── */
+  .timeline {
+    padding-top: var(--space-sm);
+  }
+
+  .timeline-time {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    margin-bottom: var(--space-xs);
+  }
+
+  .timeline-sep {
+    color: var(--color-text-muted);
+  }
+
+  .timeline-title {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-xs);
+  }
+
+  .timeline-summary {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-xs);
+  }
+
+  .timeline-speaker {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+  }
+
+  /* ── 金句 ── */
+  .quotes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .quote-context {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+    line-height: 1.5;
+  }
+
+  /* ── 底部导航 ── */
+  .bottom-nav {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-md);
+    padding-top: var(--space-lg);
+  }
+</style>

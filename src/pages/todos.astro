@@ -1,0 +1,466 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const meetings = await getCollection('meetings');
+
+const allTodos = meetings.flatMap((m) =>
+  m.data.action_items.map((a) => {
+    const isOverdue =
+      new Date(a.due_date) < new Date() && a.status !== 'completed';
+    return {
+      ...a,
+      meeting_title: m.data.metadata.title,
+      meeting_slug: m.id,
+      isOverdue,
+    };
+  })
+);
+
+const totalCount = allTodos.length;
+const completedCount = allTodos.filter((t) => t.status === 'completed').length;
+const overdueCount = allTodos.filter((t) => t.isOverdue || t.status === 'overdue').length;
+const pendingCount = allTodos.filter((t) => t.status === 'pending').length;
+const inProgressCount = allTodos.filter((t) => t.status === 'in_progress').length;
+
+const statusLabel: Record<string, string> = {
+  pending: '待处理',
+  in_progress: '进行中',
+  completed: '已完成',
+  overdue: '已逾期',
+};
+
+const priorityLabel: Record<string, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+};
+---
+
+<BaseLayout title="待办追踪 — WorkTrace">
+  <main class="todos-page">
+    <div class="container-wide">
+      <!-- Page Header -->
+      <header class="page-header">
+        <h1 class="page-title">待办追踪</h1>
+        <p class="page-subtitle">
+          聚合 <strong>{meetings.length}</strong> 场会议，共 <strong>{totalCount}</strong> 条行动项
+        </p>
+      </header>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-label">总待办</span>
+          <span class="stat-value">{totalCount}</span>
+        </div>
+        <div class="stat-card stat-completed">
+          <span class="stat-label">已完成</span>
+          <span class="stat-value">{completedCount}</span>
+        </div>
+        <div class="stat-card stat-overdue">
+          <span class="stat-label">已逾期</span>
+          <span class="stat-value">{overdueCount}</span>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <nav class="filter-bar" id="filter-bar">
+        <button class="filter-tab active" data-filter="all">
+          全部<span class="filter-count">{totalCount}</span>
+        </button>
+        <button class="filter-tab" data-filter="pending">
+          待处理<span class="filter-count">{pendingCount}</span>
+        </button>
+        <button class="filter-tab" data-filter="in_progress">
+          进行中<span class="filter-count">{inProgressCount}</span>
+        </button>
+        <button class="filter-tab" data-filter="completed">
+          已完成<span class="filter-count">{completedCount}</span>
+        </button>
+        <button class="filter-tab" data-filter="overdue">
+          已逾期<span class="filter-count">{overdueCount}</span>
+        </button>
+      </nav>
+
+      <!-- Todo List -->
+      <div class="todo-list" id="todo-list">
+        {
+          allTodos.length === 0 ? (
+            <div class="empty-state">
+              <div class="empty-icon">&#9744;</div>
+              <p>暂无待办事项</p>
+            </div>
+          ) : (
+            allTodos.map((item) => (
+              <article
+                class={`todo-item${item.isOverdue ? ' todo-overdue' : ''}`}
+                data-status={item.status}
+                data-overdue={String(item.isOverdue)}
+              >
+                <div class="todo-main">
+                  <span class={`tag tag-${item.status.replace('_', '-')}`}>
+                    {statusLabel[item.status] ?? item.status}
+                  </span>
+                  <p class="todo-task">{item.task}</p>
+                </div>
+                <div class="todo-meta">
+                  <span class="meta-owner">{item.owner}</span>
+                  <span class="meta-sep">·</span>
+                  <span class="meta-priority priority-{item.priority}">
+                    {priorityLabel[item.priority]}
+                  </span>
+                  <span class="meta-sep">·</span>
+                  <time
+                    class={`meta-due${item.isOverdue ? ' due-overdue' : ''}`}
+                    datetime={item.due_date}
+                  >
+                    {item.due_date}
+                  </time>
+                  <span class="meta-sep">·</span>
+                  <a
+                    class="meta-meeting"
+                    href={`/meeting/${item.meeting_slug}`}
+                  >
+                    {item.meeting_title}
+                  </a>
+                </div>
+              </article>
+            ))
+          )
+        }
+      </div>
+
+      <!-- Empty filter result (hidden by default) -->
+      <div class="empty-state" id="empty-filter" style="display:none;">
+        <div class="empty-icon">&#9744;</div>
+        <p>没有匹配的待办事项</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  (function () {
+    const filterBar = document.getElementById('filter-bar');
+    const todoList = document.getElementById('todo-list');
+    const emptyFilter = document.getElementById('empty-filter');
+
+    if (!filterBar || !todoList) return;
+
+    const tabs = filterBar.querySelectorAll<HTMLButtonElement>('.filter-tab');
+    const items =
+      todoList.querySelectorAll<HTMLElement>('.todo-item');
+
+    function applyFilter(filter: string) {
+      let visibleCount = 0;
+
+      items.forEach((item) => {
+        const status = item.dataset.status ?? '';
+        const isOverdue = item.dataset.overdue === 'true';
+        const match =
+          filter === 'all' ||
+          (filter === 'overdue'
+            ? isOverdue || status === 'overdue'
+            : status === filter);
+
+        if (match) {
+          item.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+
+      if (emptyFilter) {
+        emptyFilter.style.display = visibleCount === 0 ? '' : 'none';
+      }
+      if (todoList) {
+        todoList.style.display = visibleCount === 0 ? 'none' : '';
+      }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabs.forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        applyFilter(tab.dataset.filter ?? 'all');
+      });
+    });
+  })();
+</script>
+
+<style>
+  /* =============================================
+     Todos Page — design tokens from global.css
+     ============================================= */
+
+  .todos-page {
+    padding: var(--space-2xl) 0 var(--space-3xl);
+    min-height: 100vh;
+  }
+
+  /* --- Page Header --- */
+  .page-header {
+    margin-bottom: var(--space-xl);
+  }
+
+  .page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-sm);
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+  }
+
+  .page-subtitle strong {
+    color: var(--color-text);
+  }
+
+  /* --- Stats Bar --- */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+  }
+
+  .stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    transition: box-shadow var(--transition-base);
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .stat-label {
+    display: block;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+  }
+
+  .stat-value {
+    display: block;
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+  }
+
+  .stat-completed .stat-value {
+    color: var(--color-success);
+  }
+
+  .stat-overdue .stat-value {
+    color: var(--color-danger);
+  }
+
+  /* --- Filter Bar --- */
+  .filter-bar {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+  }
+
+  .filter-tab:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .filter-tab.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #ffffff;
+  }
+
+  .filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.08);
+    line-height: 1;
+  }
+
+  .filter-tab.active .filter-count {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* --- Todo List --- */
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .todo-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-left: 3px solid transparent;
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  }
+
+  .todo-item:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .todo-item.hidden {
+    display: none;
+  }
+
+  /* --- Overdue Highlight --- */
+  .todo-overdue {
+    border-left-color: var(--color-danger);
+    background: linear-gradient(
+      90deg,
+      rgba(214, 48, 49, 0.04) 0%,
+      var(--color-surface) 12px
+    );
+  }
+
+  /* --- Todo Main Row --- */
+  .todo-main {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .todo-task {
+    flex: 1;
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: 0;
+    word-break: break-word;
+  }
+
+  /* --- Todo Meta Row --- */
+  .todo-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    padding-left: calc(
+      var(--space-md) + /* gap from .todo-main */
+      /* approximate tag width — just indent */
+      0px
+    );
+  }
+
+  .meta-owner {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+
+  .meta-sep {
+    color: var(--color-border);
+    user-select: none;
+  }
+
+  .meta-priority {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  .priority-low {
+    color: var(--color-text-muted);
+    background: var(--color-surface-hover);
+  }
+
+  .priority-medium {
+    color: var(--color-warning);
+    background: rgba(253, 203, 110, 0.15);
+  }
+
+  .priority-high {
+    color: var(--color-danger);
+    background: rgba(214, 48, 49, 0.1);
+  }
+
+  .meta-due {
+    color: var(--color-text-secondary);
+  }
+
+  .due-overdue {
+    color: var(--color-danger);
+    font-weight: 600;
+  }
+
+  .meta-meeting {
+    color: var(--color-primary);
+    font-weight: 500;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 280px;
+    transition: color var(--transition-fast);
+  }
+
+  .meta-meeting:hover {
+    color: var(--color-primary-light);
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 767px) {
+    .stats-bar {
+      grid-template-columns: 1fr;
+    }
+
+    .todo-item {
+      padding: var(--space-md);
+    }
+
+    .todo-meta {
+      flex-wrap: wrap;
+    }
+
+    .meta-meeting {
+      max-width: 180px;
+    }
+  }
+</style>
