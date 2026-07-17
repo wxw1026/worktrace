@@ -28,12 +28,14 @@ const { title, description } = Astro.props;
     </main>
     <Footer />
     <script>
-      if (
-        window.location.pathname !== '/password' &&
-        !sessionStorage.getItem('worktrace_auth')
-      ) {
-        window.location.href = '/password';
-      }
+      (function(){
+        var path = window.location.pathname;
+        var base = path.substr(0, path.lastIndexOf('/') + 1);
+        var isPassword = path.endsWith('/password/') || path.indexOf('/password/') !== -1;
+        if (!isPassword && !sessionStorage.getItem('worktrace_auth')) {
+          window.location.href = base + '../password/';
+        }
+      })();
     </script>
   </body>
 </html>
