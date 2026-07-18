@@ -1,10 +1,11 @@
 ---
+const base = import.meta.env.BASE_URL + '/';
 const navLinks = [
-  { href: '/', label: '首页' },
-  { href: '/timeline', label: '时间线' },
-  { href: '/summary', label: '摘要' },
-  { href: '/todos', label: '待办' },
-  { href: '/insights', label: '洞察' },
+  { href: base, label: '首页' },
+  { href: `${base}timeline`, label: '时间线' },
+  { href: `${base}summary`, label: '摘要' },
+  { href: `${base}todos`, label: '待办' },
+  { href: `${base}insights`, label: '洞察' },
 ];
 
 const currentPath = Astro.url?.pathname || '/';
