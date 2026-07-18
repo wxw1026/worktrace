@@ -3,7 +3,8 @@ import react from '@astrojs/react';
 
 export default defineConfig({
   integrations: [react()],
-  site: 'https://worktrace.local',
+  site: 'https://wxw1026.github.io',
+  base: '/worktrace',
   vite: {
     resolve: {
       alias: {
