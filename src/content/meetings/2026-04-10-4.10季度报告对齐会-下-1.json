@@ -164,7 +164,7 @@
       "task": "场景话术调整：调整重点客户名单的7个场景表述，使其更通俗易懂，同时继续撰写话术并大白",
       "owner": "话调整圈",
       "due_date": "2026-04-17",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "efe72a9f-f273-44e9-aa98-1b3f3f5ee4c2",
       "priority": "medium"
     },
@@ -173,7 +173,7 @@
       "task": "权益信息询问：询问王小娟认证活动的权益更换情况，以及活动销管流程和话术是否",
       "owner": "需要变更",
       "due_date": "2026-04-17",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "efe72a9f-f273-44e9-aa98-1b3f3f5ee4c2",
       "priority": "medium"
     },
@@ -182,7 +182,7 @@
       "task": "客群分析添加：在经营策略下添加以认证为核心的认证客户的成交变化和触达过的客户两层分析，",
       "owner": "聚焦一",
       "due_date": "2026-04-17",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "efe72a9f-f273-44e9-aa98-1b3f3f5ee4c2",
       "priority": "medium"
     },
@@ -191,7 +191,7 @@
       "task": "季度，对比大盘 AUM",
       "owner": "待定",
       "due_date": "2026-04-17",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "efe72a9f-f273-44e9-aa98-1b3f3f5ee4c2",
       "priority": "medium"
     },
@@ -200,7 +200,7 @@
       "task": "策略调整：20 - 25 号再发一次手机行策略，下个月将策略转变为只针对近一个月未活跃的客户，",
       "owner": "以考虑",
       "due_date": "2026-04-17",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "efe72a9f-f273-44e9-aa98-1b3f3f5ee4c2",
       "priority": "medium"
     }

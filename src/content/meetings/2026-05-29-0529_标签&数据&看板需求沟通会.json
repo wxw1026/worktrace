@@ -100,7 +100,7 @@
       "task": "数据情况询问：查看数据统计时能否剔除已删除客户的情况，以及能否识别客户对员工朋友",
       "owner": "圈的屏蔽",
       "due_date": "2026-06-05",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "40919994-c1c4-4abb-9582-ac4c1f077325",
       "priority": "medium"
     }

@@ -5,7 +5,7 @@ import { getCollection } from 'astro:content';
 const meetings = await getCollection('meetings');
 
 const allTodos = meetings.flatMap((m) =>
-  m.data.action_items.map((a) => {
+  m.data.action_items.map((a, idx) => {
     const isOverdue =
       new Date(a.due_date) < new Date() && a.status !== 'completed';
     return {
@@ -13,6 +13,7 @@ const allTodos = meetings.flatMap((m) =>
       meeting_title: m.data.metadata.title,
       meeting_slug: m.id,
       isOverdue,
+      todoId: `${m.id}--${idx}`,
     };
   })
 );
@@ -97,12 +98,24 @@ const priorityLabel: Record<string, string> = {
                 class={`todo-item${item.isOverdue ? ' todo-overdue' : ''}`}
                 data-status={item.status}
                 data-overdue={String(item.isOverdue)}
+                data-todo-id={item.todoId}
               >
                 <div class="todo-main">
-                  <span class={`tag tag-${item.status.replace('_', '-')}`}>
+                  <span class={`tag tag-${item.status.replace('_', '-')}`} data-status-label="true">
                     {statusLabel[item.status] ?? item.status}
                   </span>
                   <p class="todo-task">{item.task}</p>
+                  <div class="todo-status-edit">
+                    <select
+                      class="status-select"
+                      data-todo-id={item.todoId}
+                      aria-label="更改状态"
+                    >
+                      <option value="pending" selected={item.status === 'pending'}>待处理</option>
+                      <option value="in_progress" selected={item.status === 'in_progress'}>进行中</option>
+                      <option value="completed" selected={item.status === 'completed'}>已完成</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="todo-meta">
                   <span class="meta-owner">{item.owner}</span>
@@ -120,7 +133,7 @@ const priorityLabel: Record<string, string> = {
                   <span class="meta-sep">·</span>
                   <a
                     class="meta-meeting"
-                    href={`/meeting/${item.meeting_slug}`}
+                    href={`${import.meta.env.BASE_URL}/meeting/${item.meeting_slug}`}
                   >
                     {item.meeting_title}
                   </a>
@@ -185,6 +198,69 @@ const priorityLabel: Record<string, string> = {
         tabs.forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         applyFilter(tab.dataset.filter ?? 'all');
+      });
+    });
+
+    /* ═══════════ Status Editing ═══════════ */
+    const STORAGE_KEY = 'worktrace_todo_statuses';
+    const savedStatuses: Record<string, string> = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) || '{}'
+    );
+
+    const statusLabels: Record<string, string> = {
+      pending: '待处理',
+      in_progress: '进行中',
+      completed: '已完成',
+    };
+
+    const selects = todoList.querySelectorAll<HTMLSelectElement>('.status-select');
+
+    // Apply saved statuses from localStorage
+    Object.entries(savedStatuses).forEach(([todoId, status]) => {
+      const item = todoList.querySelector(`[data-todo-id="${todoId}"]`) as HTMLElement | null;
+      const select = todoList.querySelector(`select[data-todo-id="${todoId}"]`) as HTMLSelectElement | null;
+      if (item && select) {
+        item.dataset.status = status;
+        item.classList.remove('todo-overdue');
+        select.value = status;
+        // Update the status tag
+        const label = item.querySelector('[data-status-label]') as HTMLElement | null;
+        if (label) {
+          label.className = `tag tag-${status.replace('_', '-')}`;
+          label.textContent = statusLabels[status] || status;
+        }
+        // Update overdue for non-completed items
+        if (status !== 'completed' && item.dataset.overdue === 'true') {
+          item.classList.add('todo-overdue');
+        }
+      }
+    });
+
+    // Listen for status changes
+    selects.forEach((select) => {
+      select.addEventListener('change', () => {
+        const todoId = select.dataset.todoId!;
+        const newStatus = select.value;
+        const item = todoList.querySelector(`[data-todo-id="${todoId}"]`) as HTMLElement | null;
+        if (!item) return;
+
+        // Update state
+        item.dataset.status = newStatus;
+        item.classList.remove('todo-overdue');
+        if (newStatus !== 'completed' && item.dataset.overdue === 'true') {
+          item.classList.add('todo-overdue');
+        }
+
+        // Update label
+        const label = item.querySelector('[data-status-label]') as HTMLElement | null;
+        if (label) {
+          label.className = `tag tag-${newStatus.replace('_', '-')}`;
+          label.textContent = statusLabels[newStatus] || newStatus;
+        }
+
+        // Persist
+        savedStatuses[todoId] = newStatus;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedStatuses));
       });
     });
   })();
@@ -372,6 +448,32 @@ const priorityLabel: Record<string, string> = {
     line-height: 1.6;
     margin-bottom: 0;
     word-break: break-word;
+  }
+
+  /* ── Status Edit Dropdown ── */
+  .todo-status-edit {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .status-select {
+    padding: 4px var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family);
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+    appearance: auto;
+    min-width: 80px;
+  }
+
+  .status-select:hover,
+  .status-select:focus {
+    border-color: var(--color-primary);
+    outline: none;
   }
 
   /* --- Todo Meta Row --- */

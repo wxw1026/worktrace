@@ -164,7 +164,7 @@
       "task": "完整策略体系：需讲清策略体系构成，避免缺乏逻辑和串联关系。如展示策略体系时，应体现各部分",
       "owner": "待定",
       "due_date": "2026-05-19",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "09945d04-db18-408b-a5c9-50cdce4b11da",
       "priority": "medium"
     },
@@ -173,7 +173,7 @@
       "task": "平台策略分类：平台策略分为认证客户通用策略和平台本身的活跃、流失、挽回及促认证等核心节点",
       "owner": "待定",
       "due_date": "2026-05-19",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "09945d04-db18-408b-a5c9-50cdce4b11da",
       "priority": "medium"
     },
@@ -182,7 +182,7 @@
       "task": "策略命名与展开：策略命名应清晰表明目的，选择一个核心节点展开讲透，其他节点可列举典型代",
       "owner": "待定",
       "due_date": "2026-05-19",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "09945d04-db18-408b-a5c9-50cdce4b11da",
       "priority": "medium"
     }

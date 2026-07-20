@@ -324,7 +324,7 @@
       "task": "评估每个月的内容需求产出，以便于何林团队安排人力",
       "owner": "保证供给",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -333,7 +333,7 @@
       "task": "欣欣修改计算方式，按照其他月份乘以0.8等于5月和10月的逻辑，重新计算各月",
       "owner": "的目标值",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -342,7 +342,7 @@
       "task": "将抽奖规则相关表格发送给孟佳，让其跟产品配置一",
       "owner": "起捋一下",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -351,7 +351,7 @@
       "task": "与说话人4一起去行里见四行的相关人员，并在群里推送刘芳",
       "owner": "和陈淑仪",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -360,7 +360,7 @@
       "task": "跟刘刚和高爽讨论理财经理工作台中下发用例的相关事宜，包括用例中涉及的客户数量、未添",
       "owner": "加企微的",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -369,7 +369,7 @@
       "task": "客户数量等，并要求他们执行结果进行公",
       "owner": "示和通报",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -378,7 +378,7 @@
       "task": "安排批量天课名单下发的计划，确定下个批次的",
       "owner": "下发时间",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -387,7 +387,7 @@
       "task": "谢睿将财私客户名单优先级的相关内容发送给说话人2和说话人3",
       "owner": "谢睿",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -396,7 +396,7 @@
       "task": "与赵维沟通西安直营团队的目标考核问题，分析按照当前速度和目标百分百达成的情况，用户",
       "owner": "数量能否",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -405,7 +405,7 @@
       "task": "提供直营池的整体数据通报，包括规模指标和执行率指标，并将执行率数据按照岗位",
       "owner": "进行拆分",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -414,7 +414,7 @@
       "task": "处理能量跟领取提醒这两个场景，评估工作执行到可操作的状态所需的时间，并将手机银行能",
       "owner": "量分领取",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -423,7 +423,7 @@
       "task": "页面的链接发送给说话人3",
       "owner": "待定",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     },
@@ -432,7 +432,7 @@
       "task": "进行小测试，去除客群中的新客双卡代发身份，只发送非特色产品，并查看企微内添加的客户量级 与魏东沟通内容生产不是写话术，以及明确手机银行那边如何配合和开展工作 梳理清楚重点功能，以便说话人4查看并推进 将客群室和直营的问题处理完毕，系统的问题则选在周会时讨论 发送核心观点给所有参会人员，以便其对照查看 找航源录制理财经理能看到的客户信息屏幕，以便了解一线情况 倩南研究企微客服功能本身，即购买企微客服后可以控制的素材、流转方式以及客户沟通方式等 智能会议纪要",
       "owner": "反馈收集",
       "due_date": "2026-03-04",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "9f00ba8b-68c9-4bd7-acda-e5e41a21c84d",
       "priority": "medium"
     }

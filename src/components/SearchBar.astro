@@ -31,7 +31,7 @@ const searchData: SearchEntry[] = meetings.map((m) => ({
 </script>
 
 <script>
-  import Fuse, { type FuseResultMatch } from 'fuse.js';
+  import type { FuseResultMatch } from 'fuse.js';
   import { createSearchIndex } from '../lib/search';
 
   const dataEl = document.getElementById('search-data-json');
@@ -112,7 +112,7 @@ const searchData: SearchEntry[] = meetings.map((m) => ({
       const entry = r.item;
       const titleHtml = highlightMatches(entry.title, r.matches?.filter((m) => m.key === 'title'));
       const summaryHtml = excerptWithContext(entry.summary, r.matches?.filter((m) => m.key === 'summary' || m.key === 'raw_text_summary'));
-      return '<a href="/meeting/' + entry.id + '" class="search-result-item">' +
+      return '<a href="' + import.meta.env.BASE_URL + '/meeting/' + entry.id + '" class="search-result-item">' +
         '<span class="search-result-date">' + escapeHtml(entry.date) + '</span>' +
         '<span class="search-result-title">' + titleHtml + '</span>' +
         '<span class="search-result-excerpt">' + summaryHtml + '</span>' +

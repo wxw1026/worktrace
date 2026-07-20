@@ -252,7 +252,7 @@
       "task": "环形图调整：将代运营相关的天客活动数据归为线下获客类别，调整环形图以清晰展示西安区域各渠道的",
       "owner": "贡献比例",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -261,7 +261,7 @@
       "task": "第二页内容优化：针对第二页中未达标大行板块的内容做字段缩减，将分行展示比例调大，筛选",
       "owner": "核心指标",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -270,7 +270,7 @@
       "task": "预测维度调整：将预测页的分行分布分析维度从原有的贡献、完成度，替换为指标完成、分行客",
       "owner": "户基数对",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -279,7 +279,7 @@
       "task": "应的潜力维度",
       "owner": "待定",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -288,7 +288,7 @@
       "task": "数据核验统计：按照准确的口径逻辑核验数据，剔除欢迎语相关的触达行为，统计除该类行为外",
       "owner": "今年从未",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -297,7 +297,7 @@
       "task": "被触达的客户数量",
       "owner": "待定",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -306,7 +306,7 @@
       "task": "数据有效性梳理：结合企微客户经营核心逻辑，替换当前仅统计单月活跃的非有效数据，梳理匹",
       "owner": "配核心表",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -315,7 +315,7 @@
       "task": "达的相关数据",
       "owner": "待定",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -324,7 +324,7 @@
       "task": "数据页优化：梳理当前数据页的指标逻辑，调整数据统计周期为 2 - 6 月，统一按好友维度统",
       "owner": "计相关数",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -333,7 +333,7 @@
       "task": "据，优化页面",
       "owner": "内容呈现",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -342,7 +342,7 @@
       "task": "页面内容调整：移除当前页面内经营板块相关内容，新增关联分析相关内容，同时将页面中间区",
       "owner": "域内容放",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -351,7 +351,7 @@
       "task": "图表样式调整：针对手机银行活跃分布相关内容，将无活跃类别设置为浅色，高活跃类别设",
       "owner": "置为深色",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -360,7 +360,7 @@
       "task": "数据问题确认：确认支撑活动全链路数据追踪的表的入库时间，以及入库后是否可实现产品、活",
       "owner": "动等各类",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -369,7 +369,7 @@
       "task": "型活动的全链路",
       "owner": "数据追踪",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -378,7 +378,7 @@
       "task": "促活策略调整：结合一季度 1V1 执行率、2 月祝福全量发送无剔除的相关数据，对现有促活策略",
       "owner": "进行修改",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -387,7 +387,7 @@
       "task": "非策略出客评估：剔除欢迎语、统一任务相关数据，核算纯自主经营出客体量，将对应内容补充",
       "owner": "至相关分",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -396,7 +396,7 @@
       "task": "链接跳转优化：将企微侧链接无法直接跳转、需中转浏览器的问题交由技术团队处理，实现 100%",
       "owner": "企微侧",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -405,7 +405,7 @@
       "task": "链接直跳封装",
       "owner": "待定",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -414,7 +414,7 @@
       "task": "数据问题梳理：将数据闭环相关的所有数据类问题单独归类，强化数据闭环相关问题的表述措辞，",
       "owner": "删除原",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -423,7 +423,7 @@
       "task": "有的分层设置",
       "owner": "待定",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -432,7 +432,7 @@
       "task": "数据拆分完善：在现有 25 年客户资产数据拆分基础上，补充 26 年新增客户模块，整体拆分 26",
       "owner": "年新增客",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -441,7 +441,7 @@
       "task": "户添加前后的资产",
       "owner": "对比情况",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -450,7 +450,7 @@
       "task": "数据核算调整：重新核算资产破零、5 万达标相关占比数据，两类指标的分母均统一取期初资产为 0",
       "owner": "的客",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -459,7 +459,7 @@
       "task": "户数，且不纳入",
       "owner": "新客统计",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -468,7 +468,7 @@
       "task": "图表优化调整：针对当前客户层级变化图表颜色繁杂、可读性差的问题，梳理调整图表的颜色配",
       "owner": "置与呈现",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -477,7 +477,7 @@
       "task": "逻辑，优化图",
       "owner": "表可读性",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -486,7 +486,7 @@
       "task": "AI 外呼确认：跟进 AI 外呼项目的方案排期情况，确认该项目的具体",
       "owner": "上线时间",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -495,7 +495,7 @@
       "task": "业务板块梳理：针对成效分析、归因分析、一线展业、分行督导等业务板块，全面盘点已完成、",
       "owner": "进行中及",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -504,7 +504,7 @@
       "task": "待推进的工作内容，无需等待建强统筹，同步梳理",
       "owner": "相关诉求",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     },
@@ -513,7 +513,7 @@
       "task": "文档修改更新：在 master 版本文档上进行内容修改，修改完成后标注对应页码，明确说明各页",
       "owner": "码的更新",
       "due_date": "2026-07-21",
-      "status": "pending",
+      "status": "completed",
       "source_meeting_id": "e58fd83a-b496-434b-831c-474a20463490",
       "priority": "medium"
     }

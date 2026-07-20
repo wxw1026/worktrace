@@ -67,7 +67,7 @@ export default function Timeline({ meetings }: Props) {
       if (props.item === undefined || props.item === null) return;
       const found = itemsRef.current.find((it) => it.id === props.item);
       if (found?.meetingId) {
-        window.location.href = `/meeting/${found.meetingId}`;
+        window.location.href = `${import.meta.env.BASE_URL}/meeting/${found.meetingId}`;
       }
     });
 

@@ -13,7 +13,7 @@ const currentPath = Astro.url?.pathname || '/';
 
 <header class="site-header">
   <div class="nav-container container">
-    <a href="/" class="nav-logo" aria-label="工作脉络首页">工作脉络</a>
+    <a href={base} class="nav-logo" aria-label="工作脉络首页">工作脉络</a>
 
     <input type="checkbox" id="nav-toggle" class="nav-toggle-input" />
     <label for="nav-toggle" class="nav-toggle-label" aria-label="切换导航菜单">

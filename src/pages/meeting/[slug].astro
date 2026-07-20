@@ -12,7 +12,7 @@ const meetings = await getCollection('meetings', (m) => m.id === slug);
 const meeting = meetings[0];
 
 if (!meeting) {
-  return Astro.redirect('/404');
+    return Astro.redirect(import.meta.env.BASE_URL + '/404');
 }
 
 const { metadata, summary, segments, decisions, action_items, key_quotes, keywords } = meeting.data;
@@ -60,7 +60,7 @@ const statusLabel: Record<string, string> = {
          模块 1 — 头部：标题 + 日期 + 时长 + 标签
          ═══════════════════════════════════════════ -->
     <header class="meeting-header">
-      <a href="/" class="breadcrumb">&larr; 返回首页</a>
+      <a href={import.meta.env.BASE_URL + '/'} class="breadcrumb">&larr; 返回首页</a>
       <h1 class="meeting-title">{metadata.title}</h1>
       <div class="meeting-meta">
         <span class="meta-item">
@@ -256,7 +256,7 @@ const statusLabel: Record<string, string> = {
          ═══════════════════════════════════════════ -->
     <hr class="divider" />
     <nav class="bottom-nav">
-      <a href="/" class="btn btn-outline">&larr; 返回首页</a>
+      <a href={import.meta.env.BASE_URL + '/'} class="btn btn-outline">&larr; 返回首页</a>
     </nav>
 
   </div>
