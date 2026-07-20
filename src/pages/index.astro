@@ -43,19 +43,6 @@ const topKeywords = [...keywordMap.entries()]
   .sort((a, b) => b[1] - a[1])
   .slice(0, 8);
 
-// ── Latest 3 meetings for 最新动态 ──────────────────────
-const latest3 = meetings
-  .slice()
-  .sort((a, b) => (b.data.metadata?.date ?? '').localeCompare(a.data.metadata?.date ?? ''))
-  .slice(0, 3);
-
-function extractDirection(summary: string): string {
-  if (!summary) return '';
-  // Take first ~120 chars after cleaning newlines
-  const cleaned = summary.replace(/\n/g, ' ').trim();
-  return cleaned.length > 120 ? cleaned.slice(0, 120) + '…' : cleaned;
-}
-
 // ── Helpers ────────────────────────────────────────────
 function excerpt(text: string, maxLen = 80): string {
   if (!text) return '';
@@ -127,9 +114,8 @@ function excerpt(text: string, maxLen = 80): string {
           </div>
         </div>
 
-        <!-- 关键词 + 最新动态 -->
-        <div class="right-col">
           <!-- 关键词标签 -->
+        <div class="right-col">
           <div class="card card-compact">
             <div class="card-header">
               <h2 class="card-title">关键词</h2>
@@ -147,29 +133,6 @@ function excerpt(text: string, maxLen = 80): string {
                 ))
               }
             </div>
-          </div>
-
-          <!-- 最新动态 -->
-          <div class="card card-compact">
-            <div class="card-header">
-              <h2 class="card-title">最新动态</h2>
-            </div>
-            <ul class="latest-list">
-              {
-                latest3.map((m) => {
-                  const meta = m.data.metadata;
-                  return (
-                    <li class="latest-item">
-                      <a href={`${import.meta.env.BASE_URL}/meeting/${m.id}`} class="latest-link">
-                        <span class="latest-date">{meta?.date ?? ''}</span>
-                        <span class="latest-title">{meta?.title ?? m.id}</span>
-                        <p class="latest-direction">{extractDirection(m.data.summary)}</p>
-                      </a>
-                    </li>
-                  );
-                })
-              }
-            </ul>
           </div>
         </div>
       </section>
@@ -340,67 +303,6 @@ function excerpt(text: string, maxLen = 80): string {
     background: var(--color-primary);
     color: #ffffff;
     border-color: var(--color-primary);
-  }
-
-  /* ═══════════ Latest Dynamic ═══════════ */
-  .latest-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .latest-item {
-    border-bottom: 1px solid var(--color-border-light);
-  }
-
-  .latest-item:last-child {
-    border-bottom: none;
-  }
-
-  .latest-link {
-    display: block;
-    padding: var(--space-md) 0;
-    color: var(--color-text);
-    text-decoration: none;
-    transition: background var(--transition-fast);
-  }
-
-  .latest-link:hover {
-    background: var(--color-surface-hover);
-    margin: 0 calc(var(--space-md) * -1);
-    padding-left: var(--space-md);
-    padding-right: var(--space-md);
-    border-radius: var(--radius-sm);
-  }
-
-  .latest-date {
-    display: block;
-    font-size: var(--font-size-xs);
-    color: var(--color-accent);
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-
-  .latest-title {
-    display: block;
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-text);
-    margin-bottom: 4px;
-    line-height: 1.4;
-  }
-
-  .latest-direction {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    line-height: 1.6;
-    margin-bottom: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   /* ═══════════ Search ═══════════ */

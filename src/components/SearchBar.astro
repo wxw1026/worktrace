@@ -6,154 +6,281 @@ const meetings = await getCollection('meetings');
 
 const searchData: SearchEntry[] = meetings.map((m) => ({
   id: m.id,
-  title: m.data.metadata?.title ?? m.id,
-  date: m.data.metadata?.date ?? '',
-  summary: m.data.summary ?? '',
-  raw_text_summary: m.data.raw_text_summary ?? '',
+  data: {
+    metadata: {
+      title: m.data.metadata?.title ?? m.id,
+      date: m.data.metadata?.date ?? '',
+    },
+    summary: m.data.summary ?? '',
+    raw_text_summary: m.data.raw_text_summary ?? '',
+  },
 }));
 ---
 
-<div class="search-wrapper" id="search-wrapper">
+<div class="search-wrapper" data-base={import.meta.env.BASE_URL}>
   <input
     type="search"
-    class="search-input"
     id="search-input"
-    placeholder="搜索会议标题、摘要、内容……"
+    class="search-input"
+    placeholder="搜索会议标题、摘要、内容…"
     autocomplete="off"
   />
-  <div class="search-dropdown" id="search-dropdown" hidden>
-    <div class="search-dropdown-inner" id="search-results"></div>
-  </div>
+  <div id="search-results" class="search-dropdown" hidden></div>
 </div>
 
 <script type="application/json" id="search-data-json">
 {JSON.stringify(searchData)}
 </script>
 
-<script>
-  import type { FuseResultMatch } from 'fuse.js';
-  import { createSearchIndex } from '../lib/search';
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.5.0/dist/fuse.min.js">
+</script>
 
-  const dataEl = document.getElementById('search-data-json');
-  const searchData: import('../lib/search').SearchEntry[] = JSON.parse(dataEl?.textContent || '[]');
-  const fuse = createSearchIndex(searchData);
-
-  const input = document.getElementById('search-input') as HTMLInputElement;
-  const dropdown = document.getElementById('search-dropdown') as HTMLDivElement;
-  const resultsContainer = document.getElementById('search-results') as HTMLDivElement;
-
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function debounce(fn: () => void, delay: number) {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(fn, delay);
-  }
-
-  function escapeHtml(str: string): string {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function highlightMatches(text: string, matches: readonly FuseResultMatch[] | undefined): string {
-    if (!matches || matches.length === 0) return escapeHtml(text);
-    const indices: [number, number][] = [];
-    for (const match of matches) {
-      if (match.indices) indices.push(...(match.indices as [number, number][]));
+<script is:inline>
+  (function () {
+    var wrapper = document.getElementById('search-input');
+    while (wrapper && !wrapper.classList.contains('search-wrapper')) {
+      wrapper = wrapper.parentElement;
     }
-    if (indices.length === 0) return escapeHtml(text);
-    indices.sort((a, b) => a[0] - b[0]);
-    const merged: [number, number][] = [];
-    for (const [start, end] of indices) {
-      const last = merged[merged.length - 1];
-      if (last && start <= last[1] + 1) { last[1] = Math.max(last[1], end); }
-      else { merged.push([start, end]); }
-    }
-    let result = '', cursor = 0;
-    for (const [s, e] of merged) {
-      result += escapeHtml(text.slice(cursor, s));
-      result += '<mark class="search-highlight">' + escapeHtml(text.slice(s, e + 1)) + '</mark>';
-      cursor = e + 1;
-    }
-    result += escapeHtml(text.slice(cursor));
-    return result;
-  }
+    var BASE = wrapper ? wrapper.dataset.base || '/worktrace' : '/worktrace';
 
-  function excerptWithContext(text: string, matches: readonly FuseResultMatch[] | undefined, maxLen = 120): string {
-    if (!text) return '';
-    if (!matches || matches.length === 0) {
-      return escapeHtml(text.length > maxLen ? text.slice(0, maxLen) + '\u2026' : text);
-    }
-    const allIndices: [number, number][] = [];
-    for (const m of matches) {
-      if (m.indices) allIndices.push(...(m.indices as [number, number][]));
-    }
-    if (allIndices.length === 0) {
-      return escapeHtml(text.length > maxLen ? text.slice(0, maxLen) + '\u2026' : text);
-    }
-    allIndices.sort((a, b) => a[0] - b[0]);
-    const firstMatch = allIndices[0][0];
-    const half = Math.floor(maxLen / 2);
-    let start = Math.max(0, firstMatch - half);
-    let end = Math.min(text.length, start + maxLen);
-    let snippet = text.slice(start, end);
-    if (start > 0) snippet = '\u2026' + snippet;
-    if (end < text.length) snippet = snippet + '\u2026';
-    return highlightMatches(snippet, matches);
-  }
-
-  function renderResults(query: string) {
-    if (!query.trim()) { dropdown.hidden = true; return; }
-    const results = fuse.search(query, { limit: 8 });
-    if (results.length === 0) {
-      resultsContainer.innerHTML = '<div class="search-empty">未找到匹配的会议</div>';
-      dropdown.hidden = false;
+    // ── Parse meeting data ──────────────────────────────────────
+    const dataEl = document.getElementById('search-data-json');
+    if (!dataEl) return;
+    let meetings = [];
+    try {
+      meetings = JSON.parse(dataEl.textContent || '[]');
+    } catch {
       return;
     }
-    const html = results.map((r) => {
-      const entry = r.item;
-      const titleHtml = highlightMatches(entry.title, r.matches?.filter((m) => m.key === 'title'));
-      const summaryHtml = excerptWithContext(entry.summary, r.matches?.filter((m) => m.key === 'summary' || m.key === 'raw_text_summary'));
-      return '<a href="' + import.meta.env.BASE_URL + '/meeting/' + entry.id + '" class="search-result-item">' +
-        '<span class="search-result-date">' + escapeHtml(entry.date) + '</span>' +
-        '<span class="search-result-title">' + titleHtml + '</span>' +
-        '<span class="search-result-excerpt">' + summaryHtml + '</span>' +
-        '</a>';
-    }).join('');
-    resultsContainer.innerHTML = html;
-    dropdown.hidden = false;
-  }
+    if (!meetings.length) return;
 
-  input.addEventListener('input', () => { debounce(() => renderResults(input.value), 300); });
-  input.addEventListener('focus', () => { if (input.value.trim()) renderResults(input.value); });
-  document.addEventListener('click', (e) => {
-    const wrapper = document.getElementById('search-wrapper');
-    if (wrapper && !wrapper.contains(e.target as Node)) dropdown.hidden = true;
-  });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { dropdown.hidden = true; input.blur(); } });
+    // ── Init Fuse ───────────────────────────────────────────────
+    const fuse = new Fuse(meetings, {
+      keys: ['data.metadata.title', 'data.summary', 'data.raw_text_summary'],
+      threshold: 0.4,
+      includeMatches: true,
+      minMatchCharLength: 1,
+      ignoreLocation: true,
+    });
+
+    // ── DOM refs ────────────────────────────────────────────────
+    const input = document.getElementById('search-input');
+    const dropdown = document.getElementById('search-results');
+    if (!input || !dropdown) return;
+
+    // ── Debounce ────────────────────────────────────────────────
+    let timer = null;
+    function debounce(fn, delay) {
+      return function () {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(fn, delay);
+      };
+    }
+
+    // ── Escapers ────────────────────────────────────────────────
+    function esc(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function highlight(text, matches) {
+      if (!matches || !matches.length) return esc(text);
+      const indices = [];
+      for (const m of matches) {
+        if (m.indices) indices.push(...m.indices);
+      }
+      if (!indices.length) return esc(text);
+      indices.sort((a, b) => a[0] - b[0]);
+      const merged = [];
+      for (const [s, e] of indices) {
+        const last = merged[merged.length - 1];
+        if (last && s <= last[1] + 1) last[1] = Math.max(last[1], e);
+        else merged.push([s, e]);
+      }
+      let out = '', cursor = 0;
+      for (const [s, e] of merged) {
+        out += esc(text.slice(cursor, s));
+        out += '<mark class="search-highlight">' + esc(text.slice(s, e + 1)) + '</mark>';
+        cursor = e + 1;
+      }
+      out += esc(text.slice(cursor));
+      return out;
+    }
+
+    function snippet(text, matches, maxLen) {
+      maxLen = maxLen || 100;
+      if (!text) return '';
+      if (!matches || !matches.length) {
+        return esc(text.length > maxLen ? text.slice(0, maxLen) + '…' : text);
+      }
+      const allIdx = [];
+      for (const m of matches) {
+        if (m.indices) allIdx.push(...m.indices);
+      }
+      if (!allIdx.length) return esc(text.length > maxLen ? text.slice(0, maxLen) + '…' : text);
+      allIdx.sort((a, b) => a[0] - b[0]);
+      const first = allIdx[0][0];
+      const half = Math.floor(maxLen / 2);
+      let s = Math.max(0, first - half);
+      let e = Math.min(text.length, s + maxLen);
+      // Adjust matches relative to snippet start
+      const rel = matches.map(function (m) {
+        return {
+          key: m.key,
+          indices: (m.indices || []).map(function (p) {
+            return [Math.max(0, p[0] - s), Math.min(e - s, p[1] - s)];
+          }),
+          value: m.value,
+        };
+      });
+      let snip = text.slice(s, e);
+      if (s > 0) snip = '…' + snip;
+      if (e < text.length) snip = snip + '…';
+      return highlight(snip, rel);
+    }
+
+    // ── Search handler ──────────────────────────────────────────
+    function doSearch() {
+      const q = input.value.trim();
+      if (q.length < 2) {
+        dropdown.hidden = true;
+        return;
+      }
+      const raw = fuse.search(q, { limit: 8 });
+      if (!raw.length) {
+        dropdown.innerHTML = '<div class="search-empty">未找到匹配的会议</div>';
+        dropdown.hidden = false;
+        return;
+      }
+      dropdown.innerHTML = raw
+        .map(function (r) {
+          var item = r.item;
+          var titleHtml = highlight(
+            item.data.metadata.title,
+            (r.matches || []).filter(function (m) { return m.key === 'data.metadata.title'; })
+          );
+          var bodyMatches = (r.matches || []).filter(function (m) {
+            return m.key === 'data.summary' || m.key === 'data.raw_text_summary';
+          });
+          var bodyText = item.data.summary || item.data.raw_text_summary || '';
+          var snippetHtml = snippet(bodyText, bodyMatches, 100);
+          return (
+            '<a href="' + BASE + '/meeting/' + item.id + '" class="search-result-item">' +
+            '<span class="search-result-date">' + esc(item.data.metadata.date) + '</span>' +
+            '<span class="search-result-title">' + titleHtml + '</span>' +
+            '<span class="search-result-excerpt">' + snippetHtml + '</span>' +
+            '</a>'
+          );
+        })
+        .join('');
+      dropdown.hidden = false;
+    }
+
+    var handleInput = debounce(doSearch, 300);
+
+    input.addEventListener('input', handleInput);
+
+    input.addEventListener('focus', function () {
+      if (input.value.trim().length >= 2) doSearch();
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        dropdown.hidden = true;
+        input.blur();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      var wrapper = input.closest('.search-wrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        dropdown.hidden = true;
+      }
+    });
+  })();
 </script>
 
 <style>
-  .search-wrapper { position: relative; width: 100%; max-width: 480px; }
-  .search-wrapper .search-input { width: 100%; }
+  .search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .search-wrapper :global(.search-input) {
+    width: 100%;
+  }
+
   .search-dropdown {
-    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 200;
-    background: var(--color-surface); border: 1px solid var(--color-border);
-    border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
-    max-height: 420px; overflow-y: auto;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 420px;
+    overflow-y: auto;
+    padding: var(--space-xs);
   }
-  .search-dropdown-inner { padding: var(--space-xs); }
-  .search-result-item {
-    display: flex; flex-direction: column; gap: 2px;
-    padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm);
-    text-decoration: none; color: var(--color-text);
-    transition: background var(--transition-fast); cursor: pointer;
+
+  .search-dropdown[hidden] {
+    display: none;
   }
-  .search-result-item:hover, .search-result-item:focus { background: var(--color-surface-hover); }
-  .search-result-date { font-size: var(--font-size-xs); color: var(--color-accent); font-weight: 600; }
-  .search-result-title { font-size: var(--font-size-sm); font-weight: 500; color: var(--color-text); line-height: 1.4; }
-  .search-result-excerpt {
-    font-size: var(--font-size-xs); color: var(--color-text-secondary); line-height: 1.5;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+
+  :global(.search-result-item) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: background var(--transition-fast);
+    cursor: pointer;
   }
-  .search-highlight { background: rgba(201,168,76,0.35); color: var(--color-primary-dark); font-weight: 600; border-radius: 2px; padding: 0 1px; }
-  .search-empty { padding: var(--space-lg) var(--space-md); text-align: center; font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+  :global(.search-result-item:hover),
+  :global(.search-result-item:focus) {
+    background: var(--color-surface-hover);
+  }
+
+  :global(.search-result-date) {
+    font-size: var(--font-size-xs);
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  :global(.search-result-title) {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+
+  :global(.search-result-excerpt) {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  :global(.search-highlight) {
+    background: rgba(201, 168, 76, 0.35);
+    color: var(--color-primary-dark);
+    font-weight: 600;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  :global(.search-empty) {
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
 </style>
