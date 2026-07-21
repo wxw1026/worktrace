@@ -1,0 +1,65 @@
+[
+  {
+    "alert_id": "risk-流失-13",
+    "type": "risk_recurring",
+    "severity": "critical",
+    "message": "风险高频出现: \"客户流失\" 在 13/24 场会议中被提及（占比 54%）",
+    "source_meeting_id": "36737de4-32bc-4657-a8f6-3da41a7bbd3a",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "risk-无法-13",
+    "type": "risk_recurring",
+    "severity": "critical",
+    "message": "风险高频出现: \"系统功能无法满足\" 在 13/24 场会议中被提及（占比 54%）",
+    "source_meeting_id": "36737de4-32bc-4657-a8f6-3da41a7bbd3a",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "risk-重复-11",
+    "type": "risk_recurring",
+    "severity": "critical",
+    "message": "风险高频出现: \"重复操作\" 在 11/24 场会议中被提及（占比 46%）",
+    "source_meeting_id": "36737de4-32bc-4657-a8f6-3da41a7bbd3a",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "risk-缺乏-9",
+    "type": "risk_recurring",
+    "severity": "warning",
+    "message": "风险高频出现: \"资源缺乏\" 在 9/24 场会议中被提及（占比 38%）",
+    "source_meeting_id": "36737de4-32bc-4657-a8f6-3da41a7bbd3a",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "risk-限制-8",
+    "type": "risk_recurring",
+    "severity": "warning",
+    "message": "风险高频出现: \"业务受限\" 在 8/24 场会议中被提及（占比 33%）",
+    "source_meeting_id": "a029f078-0482-4b34-b87c-3c65c7e1fc15",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "risk-风险-8",
+    "type": "risk_recurring",
+    "severity": "warning",
+    "message": "风险高频出现: \"潜在风险\" 在 8/24 场会议中被提及（占比 33%）",
+    "source_meeting_id": "36737de4-32bc-4657-a8f6-3da41a7bbd3a",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "alert_id": "decay-对外包管理",
+    "type": "topic_decay",
+    "severity": "info",
+    "message": "话题衰减: \"对外包管理\" 近2个月未被提及，此前在 3 场会议中讨论过（最后提及: 2026-04-29）",
+    "source_meeting_id": "6b4d083a-8ba2-4b3e-ade6-e1b259f6ea17",
+    "created_at": "2026-07-20T00:00:00.000Z",
+    "status": "active"
+  }
+]
