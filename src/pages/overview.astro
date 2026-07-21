@@ -1,0 +1,1122 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import alerts from '../content/alerts.json';
+import quarterlyReport from '../content/quarterly-report.json';
+
+const meetings = await getCollection('meetings');
+
+const totalMeetings = meetings.length;
+
+// ── Collect all ai_summary data ────────────────────
+const allKeyPoints = meetings.flatMap((m) =>
+  (m.data.ai_summary?.key_points ?? []).map((kp) => ({
+    ...kp,
+    meeting_date: m.data.metadata.date,
+    meeting_title: m.data.metadata.title,
+  })),
+);
+
+const allRisks = meetings.flatMap((m) =>
+  (m.data.ai_summary?.risks ?? []).map((r) => ({
+    text: r,
+    meeting_date: m.data.metadata.date,
+    meeting_title: m.data.metadata.title,
+  })),
+);
+
+// ── Todo summary ───────────────────────────────────
+const allActions = meetings.flatMap((m) => m.data.action_items ?? []);
+const completedActions = allActions.filter((a) => a.status === 'completed');
+const overdueActions = allActions.filter((a) =>
+  a.status === 'overdue' || (a.status !== 'completed' && new Date(a.due_date) < new Date()),
+);
+
+const todoCompletionRate =
+  allActions.length > 0
+    ? Math.round((completedActions.length / allActions.length) * 100)
+    : 0;
+
+// ── Monthly meeting counts ─────────────────────────
+const monthCounts = new Map<string, number>();
+for (const m of meetings) {
+  const month = m.data.metadata.date?.slice(0, 7) ?? '';
+  monthCounts.set(month, (monthCounts.get(month) ?? 0) + 1);
+}
+const months = [...monthCounts.keys()].sort();
+
+const severityColor: Record<string, string> = {
+  critical: 'var(--color-danger)',
+  warning: 'var(--color-warning)',
+  info: 'var(--color-info)',
+};
+
+// ═══ Topic-area meeting tagging ═══════════════════
+const topicAreas = {
+  '企微运营与客户触达': ['企微', '触达', '1V1', '朋友圈', '消息', '客户', '认证', '添加', '活跃', '客户经营', '好友'],
+  '代运营与分行协同': ['代运营', '协管', '分行', '直营', '陪跑', '培训', '分行协同', '总分'],
+  '数据与考核指标': ['数据', '指标', '考核', '报表', '看板', '数据分析', 'AUM', 'KPI', '统计', '指标管理', '测算'],
+  '策略与内容体系': ['策略', '内容', '投教', '原创', 'PPT', '规划', '策略体系', '素材', '文章', '朋友圈运营', '物料'],
+};
+
+function categorizeMeeting(m: any): string[] {
+  const areas: string[] = [];
+  const text = [
+    m.data.metadata.title,
+    m.data.summary ?? '',
+    ...(m.data.keywords ?? []),
+    ...(m.data.ai_summary?.key_points?.map((kp: any) => kp.point) ?? []),
+  ].join(' ');
+
+  for (const [area, keywords] of Object.entries(topicAreas)) {
+    for (const kw of keywords) {
+      if (text.includes(kw)) {
+        areas.push(area);
+        break;
+      }
+    }
+  }
+  return areas;
+}
+
+const topicMap = new Map<string, typeof meetings>();
+for (const area of Object.keys(topicAreas)) {
+  topicMap.set(area, []);
+}
+for (const m of meetings) {
+  const areas = categorizeMeeting(m);
+  for (const area of areas) {
+    topicMap.get(area)!.push(m);
+  }
+}
+
+---
+
+<BaseLayout title="全局概览" description="全局概览 · AI综合分析 · 23场会议全景">
+  <main class="overview-page">
+    <div class="container-wide">
+
+      <!-- ═══════ Page Header ═══════ -->
+      <header class="page-header">
+        <h1 class="page-title">全局概览</h1>
+        <div class="header-badge">
+          <span class="badge-dot"></span>
+          AI 综合分析 · 仅供参考
+        </div>
+        <p class="page-subtitle">
+          基于 <strong>{totalMeetings}</strong> 场会议记录（2026年1月–7月）的AI驱动分析，涵盖会议要点、风险识别与趋势判断
+        </p>
+      </header>
+
+      <!-- ═══════ Stats Row ═══════ -->
+      <section class="stats-row">
+        <div class="stat-card">
+          <span class="stat-value">{totalMeetings}</span>
+          <span class="stat-label">总会议数</span>
+        </div>
+        <div class="stat-card stat-success">
+          <span class="stat-value">{todoCompletionRate}%</span>
+          <span class="stat-label">待办完成率</span>
+        </div>
+        <div class="stat-card stat-warning">
+          <span class="stat-value">{allRisks.length}</span>
+          <span class="stat-label">风险识别</span>
+        </div>
+        <div class="stat-card stat-accent">
+          <span class="stat-value">{quarterlyReport.cross_quarter_trends.length}</span>
+          <span class="stat-label">跨季趋势</span>
+        </div>
+        <div class="stat-card stat-info">
+          <span class="stat-value">{overdueActions.length}</span>
+          <span class="stat-label">逾期待办</span>
+        </div>
+      </section>
+
+      <!-- ═══════ Section: 总体现状 ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">📊</span>
+          总体现状
+        </h2>
+        <div class="prose-block card">
+          <p>
+            2026年1月至7月，团队围绕<strong>企微客户经营与运营体系建设</strong>召开了{totalMeetings}场会议，内容覆盖策略规划、数据指标、内容生产、分行协同、系统需求等核心领域。
+            上半年已形成较为完整的策略框架，从Q1的策略梳理与年度规划，到Q2的精细化运营落地，团队在客户触达、认证转化、资产提升等关键环节建立了系统性打法。
+          </p>
+          <p>
+            当前运营模式已覆盖<strong>直营、代运营、协管</strong>三种形态，形成"策略-执行-复盘"的完整闭环。
+            数据看板建设进入深水区，触达率、有效触达率、执行转化率等核心指标已明确口径和计算方式。
+            内容生产体系从"关怀为主"向"投教+策略物料+渠道补位"三维矩阵升级，Q2已完成第一批策略物料产出。
+          </p>
+          <p>
+            挑战方面：数据获取仍是持续瓶颈（8场会议提及），销保/合规要求趋严（9场会议涉及），内容生产排期紧张。
+            团队在{months.length}个月间保持月均{
+            Math.round(totalMeetings / months.length)
+          }场会议的高频沟通节奏，显示业务处于快速迭代期。
+          </p>
+        </div>
+      </section>
+
+      <!-- ═══════ Section: 核心问题 ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">⚠️</span>
+          核心问题
+        </h2>
+        <div class="issues-grid">
+          {
+            [
+              {
+                title: '数据瓶颈制约决策效率',
+                desc: '手工统计、数据无法获取、报表建设滞后等问题贯穿多场会议。策略投产分析、客户画像下探、触达成效归因等关键分析场景依赖人工取数，决策周期长。',
+                severity: 'critical',
+                source: 'Q1–Q2 8场会议反复提及',
+              },
+              {
+                title: '销保合规压力持续升温',
+                desc: '非营销时间限制触达、产品风险等级匹配、客户同意营销确认等合规要求在多场会议中被重点讨论，需前置建立合规规则体系和SOP。',
+                severity: 'critical',
+                source: '9场会议涉及',
+              },
+              {
+                title: '内容生产资源紧张',
+                desc: '策略物料、常规原创、渠道补位三维需求同时推进，生产排期紧张。投教内容从0到1建设，需平衡质量与产出速度。',
+                severity: 'warning',
+                source: 'Q1–Q2 5场会议讨论',
+              },
+              {
+                title: '系统功能迭代滞后',
+                desc: '企微原生后台数据能力有限，部分指标无法自动获取。消息互动客户数、触达相关性判断等功能需外部开发，迭代周期影响运营效率。',
+                severity: 'warning',
+                source: '多场系统需求讨论',
+              },
+              {
+                title: '多方协同拉通成本高',
+                desc: '直营/代运营/协管三模式并行，总分行协同、内外部团队配合涉及多轮对齐。三方供应商交接存在时间窗口风险，需确保业务连续性。',
+                severity: 'warning',
+                source: '代运营&分行协同相关会议',
+              },
+            ].map((issue) => (
+              <div class="card issue-card">
+                <div class="issue-header">
+                  <span
+                    class="issue-severity"
+                    style={`--sev-color:${severityColor[issue.severity]}`}
+                  >
+                    {issue.severity === 'critical' ? '🔴 严重' : issue.severity === 'warning' ? '🟡 警告' : '🔵 提示'}
+                  </span>
+                </div>
+                <h3 class="issue-title">{issue.title}</h3>
+                <p class="issue-desc">{issue.desc}</p>
+                <span class="issue-source">{issue.source}</span>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- ═══════ Section: 战略目标 ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">🎯</span>
+          战略目标
+        </h2>
+        <div class="card">
+          <div class="goals-grid">
+            <div class="goal-item">
+              <span class="goal-number">01</span>
+              <div>
+                <h4>客户经营规模化</h4>
+                <p>完成{quarterlyReport.q1_review.core_topics.includes('客户经营') ? '全年' : ''}认证指标（全年130万），分层分群精细化运营，从圈客到触达形成完整闭环</p>
+              </div>
+            </div>
+            <div class="goal-item">
+              <span class="goal-number">02</span>
+              <div>
+                <h4>策略体系落地化</h4>
+                <p>将Q2梳理的策略框架全面推向执行，涵盖活跃、流失、挽回、促认证等核心节点策略，各模式差异化运营</p>
+              </div>
+            </div>
+            <div class="goal-item">
+              <span class="goal-number">03</span>
+              <div>
+                <h4>数据驱动常态化</h4>
+                <p>建设自动化报表和实时监控看板，降低手工取数成本，建立数据-分析-决策的闭环链路</p>
+              </div>
+            </div>
+            <div class="goal-item">
+              <span class="goal-number">04</span>
+              <div>
+                <h4>模式复制批量化</h4>
+                <p>将代运营和协管成功经验向更多分行推广，优化考核指标体系，建立标准化SOP</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ Section: 未来方向 ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">🔭</span>
+          未来方向
+        </h2>
+        <div class="card">
+          <div class="future-list">
+            {
+              [
+                '全面落地分层分群精细化运营策略，完善从圈客到触达的完整闭环',
+                '重点建设自动化报表和实时监控看板，降低手工取数成本',
+                '代运营和分行协同模式持续扩展，将成功经验向更多分行推广复制',
+                '内容生产能力持续加强，按优先级分层确保策略物料、常规原创和渠道补位内容有序产出',
+                '合规与消保风险管控前置化，制定规则以应对监管要求变化',
+                '手机银行企微引流链路优化，提升千客入口转化效率',
+                '新增企微活跃用户与手机号月活用户的关联分析，精准匹配Q3全面促活方向',
+                '长尾客户经营策略深化，启动线上听课（人工外呼+人机协呼）提升增速',
+              ].map((item, i) => (
+                <div class="future-item">
+                  <span class="future-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="future-text">{item}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ Topic Trend Cards ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">📈</span>
+          话题趋势
+        </h2>
+        <div class="trend-grid">
+          {
+            quarterlyReport.cross_quarter_trends.map((t) => {
+              const trendLabel = t.trend === 'up' ? '↑ 上升' : t.trend === 'down' ? '↓ 下降' : '→ 平稳';
+              const trendClass = t.trend === 'up' ? 'trend-up' : t.trend === 'down' ? 'trend-down' : 'trend-stable';
+              return (
+                <div class="card trend-card">
+                  <div class="trend-header">
+                    <span class="trend-topic">{t.topic}</span>
+                    <span class={`trend-badge ${trendClass}`}>{trendLabel}</span>
+                  </div>
+                  <div class="trend-bars">
+                    <div class="trend-bar-group">
+                      <span class="bar-q">Q1</span>
+                      <div class="bar-track">
+                        <div
+                          class="bar-fill"
+                          style={`width:${Math.min(100, (t.q1_count / 10) * 100)}%`}
+                        ></div>
+                      </div>
+                      <span class="bar-count">{t.q1_count}</span>
+                    </div>
+                    <div class="trend-bar-group">
+                      <span class="bar-q">Q2</span>
+                      <div class="bar-track">
+                        <div
+                          class="bar-fill"
+                          style={`width:${Math.min(100, (t.q2_count / 10) * 100)}%`}
+                        ></div>
+                      </div>
+                      <span class="bar-count">{t.q2_count}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          }
+        </div>
+      </section>
+
+      <!-- ═══════ Section: 分类总结 ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">📂</span>
+          分类总结
+        </h2>
+        <div class="category-grid">
+          <!-- 企微运营与客户触达 -->
+          <div class="card category-card">
+            <h3 class="cat-heading">
+              <span class="cat-icon">📱</span>
+              企微运营与客户触达
+            </h3>
+            <p class="cat-desc">
+              覆盖{topicMap.get('企微运营与客户触达')?.length ?? 0}场会议，是最高频议题。核心围绕客户添加→认证→触达→转化全链路：
+            </p>
+            <ul class="cat-points">
+              <li>认证指标全年130万，Q1按19.5万规划，明确加总口径</li>
+              <li>触达体系升级：区分1V1触达与有效触达，增加计划触达/实际触达维度</li>
+              <li>朋友圈不算触达，专注1V1精准触达提效</li>
+              <li>手机银行企微引流链路持续优化，关注千客入口转化</li>
+              <li>客户流失与重复操作问题多次预警，需优化客户承接SOP</li>
+            </ul>
+          </div>
+
+          <!-- 代运营与分行协同 -->
+          <div class="card category-card">
+            <h3 class="cat-heading">
+              <span class="cat-icon">🤝</span>
+              代运营与分行协同
+            </h3>
+            <p class="cat-desc">
+              覆盖{topicMap.get('代运营与分行协同')?.length ?? 0}场会议。三种运营模式各有侧重，总分协同机制持续完善：
+            </p>
+            <ul class="cat-points">
+              <li>直营：关注5-20万客户资产提升和产品购买，强调坐席与经理联动</li>
+              <li>代运营：关注签约活跃、资产破零，强调企微管家与分行一线联动</li>
+              <li>协管：关注执行率和转化率，建立重点客户名单供应机制</li>
+              <li>商送规则明确：连续达标三个月送更高层级，季度为执行周期</li>
+              <li>培训宣贯、陪跑带教、赋能推动三维分行支持体系已建立</li>
+            </ul>
+          </div>
+
+          <!-- 数据与考核指标 -->
+          <div class="card category-card">
+            <h3 class="cat-heading">
+              <span class="cat-icon">📊</span>
+              数据与考核指标
+            </h3>
+            <p class="cat-desc">
+              覆盖{topicMap.get('数据与考核指标')?.length ?? 0}场会议。数据驱动是贯穿始终的主题，指标体系持续迭代：
+            </p>
+            <ul class="cat-points">
+              <li>AOM变化分析：关注总量、户均值变化，分课层对比期初期末</li>
+              <li>手机银行/签约活跃分析：对比自身增长与全行占比</li>
+              <li>内容浏览数据口径统一：区分人数/人次，关注云工作室使用</li>
+              <li>策略投产分析：执行率、执行转化率替代穿透转化率</li>
+              <li>数据获取瓶颈持续：手工统计占比高，自动化报表建设在途</li>
+            </ul>
+          </div>
+
+          <!-- 策略与内容体系 -->
+          <div class="card category-card">
+            <h3 class="cat-heading">
+              <span class="cat-icon">🎨</span>
+              策略与内容体系
+            </h3>
+            <p class="cat-desc">
+              覆盖{topicMap.get('策略与内容体系')?.length ?? 0}场会议。策略从框架梳理走向精细化执行，内容从关怀为主升级为三维矩阵：
+            </p>
+            <ul class="cat-points">
+              <li>策略体系完整化：认证客户通用策略 + 平台活跃/流失/挽回/促认证节点策略</li>
+              <li>内容生产三维矩阵：策略物料 → 常规原创 → 渠道补位，按优先级分层</li>
+              <li>投教内容从0到1：混合基金产品介绍、口袋理财书等创新形式试水</li>
+              <li>内容偏好调整：向30-50岁有财富能力的人群倾斜</li>
+              <li>Q3全面促活方向明确，内容与策略协同发力</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ Key Decisions Feed ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">📋</span>
+          跨季度关键决策
+        </h2>
+        <div class="card">
+          <div class="decision-feed">
+            {
+              quarterlyReport.q1_review.key_decisions.slice(0, 5).map((d) => (
+                <div class="decision-item">
+                  <span class="decision-quarter">Q1</span>
+                  <span class="decision-text">{d}</span>
+                </div>
+              ))
+            }
+            {
+              quarterlyReport.q2_review.key_decisions.slice(0, 5).map((d) => (
+                <div class="decision-item">
+                  <span class="decision-quarter">Q2</span>
+                  <span class="decision-text">{d}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ Risk Alerts ═══════ -->
+      <section class="content-section">
+        <h2 class="section-heading">
+          <span class="section-icon">🚨</span>
+          风险告警 ({alerts.filter(a => a.status === 'active').length})
+        </h2>
+        <div class="alert-grid">
+          {
+            alerts.filter((a) => a.status === 'active').map((a) => (
+              <div class={`alert-item alert-${a.severity}`}>
+                <span class="alert-severity">
+                  {a.severity === 'critical' ? '🔴' : a.severity === 'warning' ? '🟡' : '🔵'}
+                </span>
+                <div class="alert-body">
+                  <p class="alert-msg">{a.message}</p>
+                  <span class="alert-type">{a.type === 'risk_recurring' ? '风险复发' : '话题衰减'}</span>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <!-- ═══════ Footer note ═══════ -->
+      <footer class="overview-footer">
+        <p>
+          数据来源：{totalMeetings}场飞书会议记录 · 生成时间：{quarterlyReport.generated_at} · AI综合分析，仅供参考
+        </p>
+      </footer>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  /* ═════════════════════════════════════════════
+     Overview Page — Card-based executive summary
+     Design tokens from global.css
+     ═════════════════════════════════════════════ */
+
+  .overview-page {
+    padding: var(--space-2xl) 0 var(--space-3xl);
+    min-height: 100vh;
+  }
+
+  /* ── Page Header ── */
+  .page-header {
+    margin-bottom: var(--space-2xl);
+    text-align: center;
+  }
+
+  .page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-sm);
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-full);
+    padding: var(--space-xs) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .page-subtitle strong {
+    color: var(--color-primary);
+  }
+
+  /* ── Stats Row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-3xl);
+  }
+
+  .stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-md);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base);
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .stat-value {
+    display: block;
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    font-family: var(--font-mono);
+    line-height: 1.2;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+  }
+
+  .stat-success .stat-value { color: var(--color-success); }
+  .stat-warning .stat-value { color: var(--color-warning); }
+  .stat-accent .stat-value { color: var(--color-accent); }
+  .stat-info .stat-value { color: var(--color-info); }
+
+  /* ── Content Sections ── */
+  .content-section {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .section-heading {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .section-icon {
+    font-size: 1.25em;
+    line-height: 1;
+  }
+
+  /* ── Prose Block ── */
+  .prose-block {
+    padding: var(--space-xl) var(--space-2xl);
+    line-height: 1.8;
+  }
+
+  .prose-block p {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-md);
+  }
+
+  .prose-block p:last-child {
+    margin-bottom: 0;
+  }
+
+  .prose-block strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  /* ── Issues Grid ── */
+  .issues-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+
+  .issue-card {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .issue-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .issue-severity {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--sev-color);
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--sev-color) 10%, transparent);
+  }
+
+  .issue-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 1.4;
+  }
+
+  .issue-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .issue-source {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  /* ── Goals Grid ── */
+  .goals-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .goal-item {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+
+  .goal-number {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    line-height: 1;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .goal-item h4 {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-xs);
+  }
+
+  .goal-item p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0;
+  }
+
+  /* ── Future List ── */
+  .future-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .future-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-hover);
+    transition: background var(--transition-fast);
+  }
+
+  .future-item:hover {
+    background: var(--color-surface);
+  }
+
+  .future-num {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .future-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* ── Trend Grid ── */
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+
+  .trend-card {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .trend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+  }
+
+  .trend-topic {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .trend-badge {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-full);
+  }
+
+  .trend-up { color: var(--color-success); background: rgba(0, 184, 148, 0.1); }
+  .trend-down { color: var(--color-danger); background: rgba(214, 48, 49, 0.1); }
+  .trend-stable { color: var(--color-text-muted); background: var(--color-surface-hover); }
+
+  .trend-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .trend-bar-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .bar-q {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--color-surface-hover);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--color-primary-light);
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease;
+  }
+
+  .bar-count {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    width: 16px;
+    text-align: right;
+  }
+
+  /* ── Category Grid ── */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .category-card {
+    padding: var(--space-xl);
+  }
+
+  .cat-heading {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .cat-icon {
+    font-size: 1.25em;
+  }
+
+  .cat-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-md);
+  }
+
+  .cat-points {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    list-style: none;
+    padding: 0;
+  }
+
+  .cat-points li {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    padding-left: var(--space-lg);
+    position: relative;
+  }
+
+  .cat-points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  /* ── Decision Feed ── */
+  .decision-feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .decision-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-hover);
+    transition: background var(--transition-fast);
+  }
+
+  .decision-item:hover {
+    background: var(--color-surface);
+  }
+
+  .decision-quarter {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-accent-dark);
+    background: rgba(201, 168, 76, 0.15);
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .decision-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+
+  /* ── Alert Grid ── */
+  .alert-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border-left: 3px solid transparent;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .alert-critical { border-left-color: var(--color-danger); }
+  .alert-warning { border-left-color: var(--color-warning); }
+  .alert-info { border-left-color: var(--color-info); }
+
+  .alert-severity {
+    font-size: var(--font-size-lg);
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .alert-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .alert-msg {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: var(--space-xs);
+  }
+
+  .alert-type {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    background: var(--color-surface-hover);
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-full);
+  }
+
+  /* ── Overview Footer ── */
+  .overview-footer {
+    text-align: center;
+    padding-top: var(--space-xl);
+    margin-top: var(--space-2xl);
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .overview-footer p {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    margin-bottom: 0;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1023px) {
+    .stats-row {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .issues-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .trend-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .goals-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .alert-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .overview-page {
+      padding: var(--space-lg) 0 var(--space-xl);
+    }
+
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+
+    .stats-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .stat-card {
+      padding: var(--space-md) var(--space-sm);
+    }
+
+    .stat-value {
+      font-size: var(--font-size-2xl);
+    }
+
+    .issues-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .trend-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .prose-block {
+      padding: var(--space-md);
+    }
+
+    .section-heading {
+      font-size: var(--font-size-lg);
+    }
+
+    .goals-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .goal-number {
+      font-size: var(--font-size-2xl);
+    }
+
+    .future-item {
+      padding: var(--space-sm);
+    }
+
+    .future-num {
+      font-size: var(--font-size-xs);
+    }
+
+    .future-text {
+      font-size: var(--font-size-xs);
+    }
+
+    .decision-item {
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .category-card {
+      padding: var(--space-md);
+    }
+
+    .alert-item {
+      padding: var(--space-sm);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .page-title {
+      font-size: var(--font-size-xl);
+    }
+
+    .header-badge {
+      font-size: var(--font-size-xs);
+    }
+
+    .page-subtitle {
+      font-size: var(--font-size-sm);
+    }
+
+    .stats-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-xs);
+    }
+
+    .stat-card {
+      padding: var(--space-sm) var(--space-xs);
+    }
+
+    .stat-value {
+      font-size: var(--font-size-xl);
+    }
+
+    .stat-label {
+      font-size: 10px;
+    }
+
+    .cat-heading {
+      font-size: var(--font-size-base);
+    }
+
+    .cat-points li {
+      font-size: var(--font-size-xs);
+    }
+
+    .alert-msg {
+      font-size: var(--font-size-xs);
+    }
+  }
+</style>

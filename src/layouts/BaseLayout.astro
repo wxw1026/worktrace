@@ -10,6 +10,13 @@ export interface Props {
 }
 
 const { title, description } = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+const currentPath = Astro.url?.pathname || '/';
+
+function isActive(path: string): string {
+  return currentPath === path ? 'active' : '';
+}
 ---
 
 <!doctype html>
@@ -20,12 +27,90 @@ const { title, description } = Astro.props;
     <title>{title} | 工作脉络</title>
     {description && <meta name="description" content={description} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script is:inline>
+      (function () {
+        const stored = localStorage.getItem('theme');
+        if (stored === 'dark') {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
   </head>
   <body>
+    <button id="theme-toggle" class="theme-toggle" aria-label="切换深色模式" title="切换深色/浅色模式">
+      🌙
+    </button>
     <Navigation />
     <main class="container">
       <slot />
     </main>
     <Footer />
+
+    <!-- ═══════════ 移动端底部导航栏 (< 768px) ═══════════ -->
+    <nav class="mobile-bottom-nav" aria-label="移动端导航">
+      <a href={base} class:list={['mobile-nav-link', isActive(base)]}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>首页</span>
+      </a>
+      <a href={`${base}overview`} class:list={['mobile-nav-link', isActive(`${base}overview`)]}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>概览</span>
+      </a>
+      <a href={`${base}timeline`} class:list={['mobile-nav-link', isActive(`${base}timeline`)]}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>时间线</span>
+      </a>
+      <a href={`${base}todos`} class:list={['mobile-nav-link', isActive(`${base}todos`)]}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>待办</span>
+      </a>
+      <a href={`${base}insights`} class:list={['mobile-nav-link', isActive(`${base}insights`)]}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span>洞察</span>
+      </a>
+    </nav>
+
+    <script>
+      const STORAGE_KEY = 'theme';
+      const toggle = document.getElementById('theme-toggle');
+
+      if (!toggle) throw new Error('theme-toggle not found');
+
+      function setThemeIcon(isDark: boolean) {
+        toggle!.textContent = isDark ? '☀️' : '🌙';
+      }
+
+      toggle.addEventListener('click', () => {
+        const isDark = document.documentElement.dataset.theme === 'dark';
+        if (isDark) {
+          document.documentElement.dataset.theme = '';
+          localStorage.setItem(STORAGE_KEY, 'light');
+          setThemeIcon(false);
+        } else {
+          document.documentElement.dataset.theme = 'dark';
+          localStorage.setItem(STORAGE_KEY, 'dark');
+          setThemeIcon(true);
+        }
+      });
+
+      // 初始化图标
+      setThemeIcon(document.documentElement.dataset.theme === 'dark');
+    </script>
   </body>
 </html>

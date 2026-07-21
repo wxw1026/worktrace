@@ -4,19 +4,24 @@ import { getCollection } from 'astro:content';
 
 const meetings = await getCollection('meetings');
 
-const allTodos = meetings.flatMap((m) =>
-  m.data.action_items.map((a, idx) => {
-    const isOverdue =
-      new Date(a.due_date) < new Date() && a.status !== 'completed';
-    return {
-      ...a,
-      meeting_title: m.data.metadata.title,
-      meeting_slug: m.id,
-      isOverdue,
-      todoId: `${m.id}--${idx}`,
-    };
-  })
-);
+const allTodos = meetings
+  .flatMap((m) =>
+    m.data.action_items.map((a, idx) => {
+      const isOverdue =
+        new Date(a.due_date) < new Date() && a.status !== 'completed';
+      return {
+        ...a,
+        meeting_title: m.data.metadata.title,
+        meeting_slug: m.id,
+        meeting_date: m.data.metadata.date,
+        isOverdue,
+        todoId: `${m.id}--${idx}`,
+      };
+    })
+  )
+  .sort((a, b) =>
+    (b.meeting_date ?? '').localeCompare(a.meeting_date ?? ''),
+  );
 
 const totalCount = allTodos.length;
 const completedCount = allTodos.filter((t) => t.status === 'completed').length;
@@ -549,8 +554,38 @@ const priorityLabel: Record<string, string> = {
 
   /* --- Responsive --- */
   @media (max-width: 767px) {
+    .todos-page {
+      padding: var(--space-lg) 0 var(--space-xl);
+    }
+
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+
     .stats-bar {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .stat-card {
+      padding: var(--space-md) var(--space-sm);
+    }
+
+    .stat-value {
+      font-size: var(--font-size-2xl);
+    }
+
+    .filter-bar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: var(--space-xs);
+      gap: var(--space-xs);
+    }
+
+    .filter-tab {
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .todo-item {
@@ -563,6 +598,75 @@ const priorityLabel: Record<string, string> = {
 
     .meta-meeting {
       max-width: 180px;
+    }
+
+    .todo-main {
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .todos-page {
+      padding: var(--space-md) 0 var(--space-lg);
+    }
+
+    .page-title {
+      font-size: var(--font-size-xl);
+    }
+
+    .page-subtitle {
+      font-size: var(--font-size-sm);
+    }
+
+    .stats-bar {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-xs);
+    }
+
+    .stat-card {
+      padding: var(--space-sm) var(--space-xs);
+    }
+
+    .stat-value {
+      font-size: var(--font-size-xl);
+    }
+
+    .stat-label {
+      font-size: var(--font-size-xs);
+    }
+
+    .filter-tab {
+      padding: var(--space-xs) var(--space-sm);
+      font-size: var(--font-size-xs);
+    }
+
+    .todo-item {
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .todo-task {
+      font-size: var(--font-size-sm);
+    }
+
+    .todo-meta {
+      font-size: var(--font-size-xs);
+      gap: var(--space-xs);
+    }
+
+    .meta-meeting {
+      max-width: 120px;
+      font-size: var(--font-size-xs);
+    }
+
+    .todo-status-edit {
+      margin-left: 0;
+    }
+
+    .status-select {
+      font-size: 10px;
+      padding: 2px var(--space-xs);
+      min-width: 64px;
     }
   }
 </style>

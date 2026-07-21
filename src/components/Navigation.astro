@@ -2,6 +2,7 @@
 const base = import.meta.env.BASE_URL + '/';
 const navLinks = [
   { href: base, label: '首页' },
+  { href: `${base}overview`, label: '概览' },
   { href: `${base}timeline`, label: '时间线' },
   { href: `${base}summary`, label: '摘要' },
   { href: `${base}todos`, label: '待办' },
@@ -48,6 +49,7 @@ const currentPath = Astro.url?.pathname || '/';
   .site-header {
     background: rgba(255, 255, 255, 0.92);
     border-bottom: 1px solid var(--color-border-light);
+    transition: background var(--transition-base);
     position: sticky;
     top: 0;
     z-index: 100;
